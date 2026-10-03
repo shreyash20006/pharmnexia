@@ -11,6 +11,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
+import { PharmNexiaLogo } from './PharmNexiaLogo';
 
 export const AuthModal = ({ isOpen, initialMode = 'login', onClose, onSuccess }) => {
   if (!isOpen) return null;
@@ -87,8 +88,8 @@ export const AuthModal = ({ isOpen, initialMode = 'login', onClose, onSuccess })
         {/* Header */}
         <div className="bg-[#F8FAF9] p-5 flex items-center justify-between border-b border-[#E5E7EB]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#E8F8F1] border border-[#00A86B]/20 flex items-center justify-center text-[#00A86B]">
-              <GraduationCap className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-white border border-[#E5E7EB] flex items-center justify-center p-1 shadow-sm">
+              <PharmNexiaLogo size="sm" showIconOnly={true} theme="light" />
             </div>
             <div>
               <h3 className="font-bold text-[#101828] text-base font-heading">

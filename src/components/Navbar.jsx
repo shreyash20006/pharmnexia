@@ -10,6 +10,7 @@ import {
   Award
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
+import { PharmNexiaLogo } from './PharmNexiaLogo';
 
 export const Navbar = ({ currentPath, onNavigate }) => {
   const { 
@@ -48,24 +49,13 @@ export const Navbar = ({ currentPath, onNavigate }) => {
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-20">
           
-          {/* Logo Container (Unified Brand Element, height 36px, display: flex, align-items: center) */}
+          {/* Logo Container (Unified Brand Element) */}
           <div className="flex items-center flex-shrink-0">
             <button 
               onClick={() => handleNav('/')} 
-              className="flex items-center gap-2.5 group text-left focus:outline-none"
-              style={{ height: '36px' }}
+              className="flex items-center group text-left focus:outline-none"
             >
-              <div className="w-9 h-9 rounded-xl bg-[#E8F8F1] border border-[#E5E7EB] flex items-center justify-center flex-shrink-0 group-hover:border-[#00A86B] transition-colors">
-                <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 36 36" fill="none">
-                  <path d="M18 9V27" stroke="#00A86B" strokeWidth="3.2" strokeLinecap="round"/>
-                  <path d="M9 18H27" stroke="#00A86B" strokeWidth="3.2" strokeLinecap="round"/>
-                  <circle cx="18" cy="18" r="9" stroke="#00D084" strokeWidth="1.2" strokeDasharray="2.5 2.5"/>
-                  <circle cx="18" cy="18" r="2.5" fill="#087A52"/>
-                </svg>
-              </div>
-              <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#111827] font-heading whitespace-nowrap leading-none flex items-center">
-                Pharm<span className="text-[#00A86B]">Nexia</span>
-              </span>
+              <PharmNexiaLogo size="sm" theme="light" />
             </button>
           </div>
 

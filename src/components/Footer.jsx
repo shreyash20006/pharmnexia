@@ -1,5 +1,6 @@
 import React from 'react';
 import { Award, Shield, ArrowUpRight } from 'lucide-react';
+import { PharmNexiaLogo } from './PharmNexiaLogo';
 
 export const Footer = ({ onNavigate }) => {
   return (
@@ -9,18 +10,8 @@ export const Footer = ({ onNavigate }) => {
           
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#F8FAF9] border border-[#E5EAE7] flex items-center justify-center text-[#00A86B]">
-                <svg className="w-4 h-4" viewBox="0 0 40 40" fill="none">
-                  <path d="M20 8V32" stroke="#00A86B" strokeWidth="4" strokeLinecap="round"/>
-                  <path d="M8 20H32" stroke="#00A86B" strokeWidth="4" strokeLinecap="round"/>
-                  <circle cx="20" cy="20" r="11" stroke="#00A86B" strokeWidth="1.5" opacity="0.6"/>
-                  <circle cx="20" cy="20" r="3.5" fill="#087A52"/>
-                </svg>
-              </div>
-              <span className="text-xl font-bold text-[#111111] tracking-tight font-heading">
-                Pharm<span className="text-[#00A86B]">Nexia</span>
-              </span>
+            <div className="flex items-start">
+              <PharmNexiaLogo size="md" theme="light" showTagline={false} />
             </div>
 
             <p className="text-[#111111] text-sm font-semibold">
