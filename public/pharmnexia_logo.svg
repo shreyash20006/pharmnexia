@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 56" fill="none">
+  <defs>
+    <linearGradient id="pnx-mark-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5A8"/>
+      <stop offset="100%" stop-color="#00D084"/>
+    </linearGradient>
+  </defs>
+  <!-- Logo Mark Icon -->
+  <rect x="2" y="2" width="52" height="52" rx="14" fill="#0B1535" stroke="rgba(0, 208, 132, 0.4)" stroke-width="1.5"/>
+  <path d="M28 12V44" stroke="url(#pnx-mark-green)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M12 28H44" stroke="url(#pnx-mark-green)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="28" cy="28" r="16" stroke="#00D084" stroke-width="2" stroke-dasharray="4 4" opacity="0.75"/>
+  <circle cx="28" cy="12" r="3.5" fill="#00E5A8"/>
+  <circle cx="28" cy="44" r="3.5" fill="#00D084"/>
+  <circle cx="12" cy="28" r="3.5" fill="#00E5A8"/>
+  <circle cx="44" cy="28" r="3.5" fill="#00D084"/>
+  <circle cx="28" cy="28" r="5" fill="#FFFFFF"/>
+
+  <!-- Brand Typography -->
+  <text x="68" y="35" font-family="'Manrope', 'Poppins', 'Inter', sans-serif" font-size="24" font-weight="800" letter-spacing="-0.5" fill="#FFFFFF">
+    Pharm<tspan fill="#00D084">Nexia</tspan>
+  </text>
+  <text x="69" y="47" font-family="'Inter', sans-serif" font-size="8.5" font-weight="600" letter-spacing="1.5" fill="#A7B0C0" text-transform="uppercase">
+    CAREERS CONNECTED
+  </text>
+</svg>
