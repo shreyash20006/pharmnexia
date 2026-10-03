@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LOGO_IMG_URL = "https://res.cloudinary.com/axgam8br/image/upload/v1791029495/ChatGPT_Image_Oct_3_2026_04_26_53_PM_crop.png";
+const LOGO_IMG_URL = "https://res.cloudinary.com/axgam8br/image/upload/v1791048434/1000481602.jpg";
 
 /**
  * Official PharmNexia Brand Logo Component
