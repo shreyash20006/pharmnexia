@@ -15,7 +15,7 @@ import {
 import { useApp } from '../store/AppContext';
 import { ScrollReveal, FadeUp } from '../components/Animation';
 
-export const ResourcesPage = () => {
+export const ResourcesPage = ({ onNavigate }) => {
   const { resources, currentUser } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,6 +68,36 @@ export const ResourcesPage = () => {
             <p className="text-[#667085] text-[15.5px] leading-[1.65]">
               Free high-yield reaction handbooks, CTD Module 3 guides, ATS resume templates, and Drug Inspector bare acts curated by verified faculty and industry experts.
             </p>
+          </div>
+        </div>
+      </FadeUp>
+
+      {/* Featured Interactive Editorial Guide Banner */}
+      <FadeUp delay={40}>
+        <div className="p-7 sm:p-8 rounded-3xl bg-gradient-to-br from-[#101828] via-[#0F172A] to-[#101828] text-white border-2 border-[#00A86B]/40 shadow-lg relative overflow-hidden card-lift">
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2.5 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#00A86B]/20 text-[#00D084] text-xs font-mono font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-[#00D084]" />
+                <span>Featured Interactive Editorial Guide • 8–10 Min Read</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold font-heading text-white tracking-tight">
+                AI in Medical & Scientific Writing
+              </h2>
+              <p className="text-[15px] text-[#CBD5E1] leading-relaxed">
+                Tools, workflows and responsible-use principles for pharmacy and life-science writers who want speed without losing accuracy.
+              </p>
+            </div>
+
+            <div className="flex-shrink-0 w-full sm:w-auto">
+              <button
+                onClick={() => onNavigate && onNavigate('/resources/ai-medical-writing')}
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-[#00A86B] hover:bg-[#00D084] text-white hover:text-[#101828] font-bold text-[15px] shadow-sm transition duration-200 flex items-center justify-center gap-2 btn-primary-action"
+              >
+                <span>Read Interactive Guide</span>
+                <ArrowRight className="w-4 h-4 btn-arrow" />
+              </button>
+            </div>
           </div>
         </div>
       </FadeUp>

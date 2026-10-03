@@ -16,6 +16,7 @@ import { ProgramDetailPage } from './pages/ProgramDetailPage';
 import { OpportunitiesPage } from './pages/OpportunitiesPage';
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage';
 import { ResourcesPage } from './pages/ResourcesPage';
+import { AiMedicalWritingPage } from './pages/AiMedicalWritingPage';
 import { VerifyCertificatePage } from './pages/VerifyCertificatePage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -100,7 +101,10 @@ function AppContent() {
       return <OpportunityDetailPage opportunityId={oppId} onNavigate={navigate} />;
     }
 
-    // 6. Resources
+    // 6. Resources & AI Medical Writing Interactive Guide
+    if (currentPath === '/resources/ai-medical-writing') {
+      return <AiMedicalWritingPage onNavigate={navigate} />;
+    }
     if (currentPath === '/resources') {
       return <ResourcesPage onNavigate={navigate} />;
     }
