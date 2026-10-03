@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LOGO_IMG_URL = "https://res.cloudinary.com/axgam8br/image/upload/v1791048434/1000481602.jpg";
+const LOGO_IMG_URL = "https://res.cloudinary.com/axgam8br/image/upload/v1791050025/1000481598.jpg";
 
 /**
  * Official PharmNexia Brand Logo Component
@@ -23,10 +23,10 @@ export const PharmNexiaLogo = ({
   const pharmTextColor = isDark ? '#FFFFFF' : '#101828';
   const taglineTextColor = isDark ? '#E5E7EB' : '#475467';
 
-  // Sizing dimensions
+  // Sizing dimensions with full ratio preservation
   const sizeConfig = {
     sm: {
-      iconSize: 38,
+      iconSize: 42,
       fontSize: 'text-xl sm:text-2xl',
       leafSize: { w: 10, h: 5.5, ml: -5, mb: 16 },
       gap: 'gap-2.5',
@@ -34,7 +34,7 @@ export const PharmNexiaLogo = ({
       lineWidth: 'w-10'
     },
     md: {
-      iconSize: 46,
+      iconSize: 50,
       fontSize: 'text-2xl sm:text-3xl',
       leafSize: { w: 14, h: 7.5, ml: -7, mb: 22 },
       gap: 'gap-3',
@@ -42,7 +42,7 @@ export const PharmNexiaLogo = ({
       lineWidth: 'w-16'
     },
     lg: {
-      iconSize: 64,
+      iconSize: 70,
       fontSize: 'text-4xl sm:text-5xl',
       leafSize: { w: 18, h: 10, ml: -9, mb: 32 },
       gap: 'gap-4',
@@ -50,7 +50,7 @@ export const PharmNexiaLogo = ({
       lineWidth: 'w-24'
     },
     hero: {
-      iconSize: 96,
+      iconSize: 110,
       fontSize: 'text-5xl sm:text-7xl lg:text-8xl',
       leafSize: { w: 28, h: 15, ml: -14, mb: 50 },
       gap: 'gap-5',
@@ -58,7 +58,7 @@ export const PharmNexiaLogo = ({
       lineWidth: 'w-24 sm:w-36'
     }
   }[size] || {
-    iconSize: 46,
+    iconSize: 50,
     fontSize: 'text-2xl sm:text-3xl',
     leafSize: { w: 14, h: 7.5, ml: -7, mb: 22 },
     gap: 'gap-3',
@@ -71,16 +71,19 @@ export const PharmNexiaLogo = ({
       <div className={`flex items-center justify-center ${sizeConfig.gap}`}>
         
         {/* ====================================================================
-            1. PHARMNEXIA OFFICIAL EMBLEM (Cloudinary Image with local fallback)
+            1. PHARMNEXIA OFFICIAL EMBLEM (Full Aspect Ratio Preserved)
             ==================================================================== */}
         <div 
-          className="relative flex-shrink-0 flex items-center justify-center rounded-xl overflow-hidden shadow-sm bg-black border border-white/10"
+          className={`relative flex-shrink-0 flex items-center justify-center overflow-hidden transition-transform duration-200 ${
+            isDark ? 'bg-white rounded-xl p-1 shadow-sm' : 'bg-transparent mix-blend-multiply'
+          }`}
           style={{ width: sizeConfig.iconSize, height: sizeConfig.iconSize }}
         >
           <img
             src={LOGO_IMG_URL}
             alt="PharmNexia Emblem"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain aspect-square select-none pointer-events-none"
+            loading="eager"
             onError={(e) => {
               e.currentTarget.src = "/logo.png";
             }}
