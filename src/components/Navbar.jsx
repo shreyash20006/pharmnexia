@@ -67,7 +67,7 @@ export const Navbar = ({ currentPath, onNavigate }) => {
                 <button
                   key={link.path}
                   onClick={() => handleNav(link.path)}
-                  className={`whitespace-nowrap text-sm font-medium transition-colors py-1 ${
+                  className={`whitespace-nowrap text-[15.5px] font-medium transition-colors py-1 ${
                     isActive 
                       ? 'text-[#00A86B] font-semibold' 
                       : 'text-[#344054] hover:text-[#00A86B]'
@@ -195,16 +195,16 @@ export const Navbar = ({ currentPath, onNavigate }) => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => handleNav('/auth?mode=login')}
-                  className="whitespace-nowrap text-xs sm:text-sm font-medium text-[#344054] hover:text-[#00A86B] px-3 py-2 transition-colors"
+                  className="whitespace-nowrap text-[15px] font-semibold text-[#344054] hover:text-[#00A86B] px-3.5 py-2 transition-colors"
                 >
                   Log In
                 </button>
                 <button
                   onClick={() => handleNav('/auth?mode=signup')}
-                  className="whitespace-nowrap text-xs sm:text-sm font-medium rounded-[10px] bg-[#00A86B] hover:bg-[#087A52] text-white px-[18px] py-[10px] transition-colors shadow-sm"
+                  className="whitespace-nowrap text-[15.5px] font-semibold rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white px-5 py-2.5 transition-colors shadow-sm btn-primary-action"
                 >
                   Get Started
                 </button>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { BookingModal } from '../components/BookingModal';
+import { ScrollReveal, FadeUp, FadeLeft, FadeRight } from '../components/Animation';
 
 export const MentorsPage = ({ onNavigate }) => {
   const { mentors, addMentor, currentUser } = useApp();
@@ -98,219 +99,228 @@ export const MentorsPage = ({ onNavigate }) => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 bg-white text-[#111827]">
       
       {/* Page Header */}
-      <div className="bg-[#F8FAF9] rounded-3xl p-8 sm:p-12 border border-[#E5E7EB] shadow-sm relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E8F8F1] text-[#087A52] text-xs font-semibold border border-[#00A86B]/20">
-            <ShieldCheck className="w-4 h-4 text-[#00A86B]" />
-            <span>Verified 1-on-1 Mentorship Marketplace</span>
+      <FadeUp>
+        <div className="bg-[#F8FAF9] rounded-3xl p-8 sm:p-12 border border-[#E5E7EB] shadow-sm relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="relative z-10 max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E8F8F1] text-[#087A52] text-[13.5px] font-semibold border border-[#00A86B]/20">
+              <ShieldCheck className="w-4 h-4 text-[#00A86B]" />
+              <span>Verified 1-on-1 Mentorship Marketplace</span>
+            </div>
+
+            <h1 className="text-[30px] sm:text-[44px] font-extrabold tracking-tight text-[#101828] font-heading leading-[1.15]">
+              Connect With Verified Mentors
+            </h1>
+
+            <p className="text-[#667085] text-[15.5px] leading-[1.65]">
+              Book private 30 or 60 minute video sessions with verified alumni, industry scientists, academic researchers, and entrance toppers.
+            </p>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#101828] font-heading">
-            Connect With Verified Mentors
-          </h1>
-
-          <p className="text-[#667085] text-sm leading-relaxed">
-            Book private 30 or 60 minute video sessions with verified alumni, industry scientists, academic researchers, and entrance toppers.
-          </p>
+          <div className="relative z-10 flex-shrink-0">
+            <button
+              onClick={() => setIsApplyModalOpen(true)}
+              className="px-5 py-3 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[15px] shadow-sm transition flex items-center gap-2 btn-primary-action"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Apply as a Mentor</span>
+            </button>
+          </div>
         </div>
-
-        <div className="relative z-10 flex-shrink-0">
-          <button
-            onClick={() => setIsApplyModalOpen(true)}
-            className="px-5 py-3 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition flex items-center gap-2"
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Apply as a Mentor</span>
-          </button>
-        </div>
-      </div>
+      </FadeUp>
 
       {/* Search and Filters Bar */}
-      <div className="bg-[#F8FAF9] p-5 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
-        
-        {/* Top row: Search and Sort */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="w-full md:w-96 relative">
-            <Search className="w-4 h-4 text-[#667085] absolute left-3.5 top-3" />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, expertise, role (e.g. Argus, IIM, NIPER)..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-[#667085] focus:outline-none focus:border-[#00A86B]"
-            />
+      <FadeUp delay={80}>
+        <div className="bg-[#F8FAF9] p-5 rounded-2xl border border-[#E5E7EB] shadow-sm space-y-4">
+          
+          {/* Top row: Search and Sort */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="w-full md:w-96 relative">
+              <Search className="w-4 h-4 text-[#667085] absolute left-3.5 top-3.5" />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, expertise, role (e.g. Argus, IIM, NIPER)..."
+                className="w-full pl-10 pr-4 py-2.5 text-[14.5px] rounded-xl bg-white border border-[#E5E7EB] text-[#111827] placeholder-[#667085] focus:outline-none focus:border-[#00A86B]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end text-[14px]">
+              <span className="text-[#667085] font-medium whitespace-nowrap">Sort By:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="p-2.5 rounded-xl border border-[#E5E7EB] bg-white text-[14px] font-semibold text-[#111827] focus:outline-none focus:border-[#00A86B]"
+              >
+                <option value="rating">Top Rated (4.9+)</option>
+                <option value="sessions">Most Sessions Completed</option>
+                <option value="priceAsc">Price: Free & Low to High</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end text-xs">
-            <span className="text-[#667085] font-medium whitespace-nowrap">Sort By:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="p-2.5 rounded-xl border border-[#E5E7EB] bg-white text-xs font-semibold text-[#111827] focus:outline-none focus:border-[#00A86B]"
-            >
-              <option value="rating">Top Rated (4.9+)</option>
-              <option value="sessions">Most Sessions Completed</option>
-              <option value="priceAsc">Price: Free & Low to High</option>
-            </select>
+          {/* Filter Chips */}
+          <div className="pt-2 border-t border-[#E5E7EB] flex flex-wrap items-center gap-2 text-[13.5px]">
+            <span className="text-[#667085] font-semibold mr-1">Category:</span>
+            {mentorTypes.map(t => (
+              <button
+                key={t}
+                onClick={() => setSelectedType(t)}
+                className={`px-3.5 py-1.5 rounded-lg font-medium transition text-[13.5px] ${
+                  selectedType === t 
+                    ? 'bg-[#00A86B] text-white shadow-sm font-semibold' 
+                    : 'bg-white text-[#667085] border border-[#E5E7EB] hover:border-[#00A86B] hover:text-[#111827]'
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+
+            <span className="text-[#667085] font-semibold ml-auto mr-1">Pricing:</span>
+            {priceModels.map(p => (
+              <button
+                key={p}
+                onClick={() => setSelectedPriceModel(p)}
+                className={`px-3.5 py-1.5 rounded-lg font-medium transition text-[13.5px] ${
+                  selectedPriceModel === p 
+                    ? 'bg-[#101828] text-white font-semibold' 
+                    : 'bg-white text-[#667085] border border-[#E5E7EB] hover:border-[#00A86B] hover:text-[#111827]'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
           </div>
+
         </div>
-
-        {/* Filter Chips */}
-        <div className="pt-2 border-t border-[#E5E7EB] flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-[#667085] font-semibold mr-1">Category:</span>
-          {mentorTypes.map(t => (
-            <button
-              key={t}
-              onClick={() => setSelectedType(t)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition text-xs ${
-                selectedType === t 
-                  ? 'bg-[#00A86B] text-white shadow-sm' 
-                  : 'bg-white text-[#667085] border border-[#E5E7EB] hover:border-[#00A86B] hover:text-[#111827]'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-
-          <span className="text-[#667085] font-semibold ml-auto mr-1">Pricing:</span>
-          {priceModels.map(p => (
-            <button
-              key={p}
-              onClick={() => setSelectedPriceModel(p)}
-              className={`px-3 py-1.5 rounded-lg font-medium transition text-xs ${
-                selectedPriceModel === p 
-                  ? 'bg-[#101828] text-white' 
-                  : 'bg-white text-[#667085] border border-[#E5E7EB] hover:border-[#00A86B] hover:text-[#111827]'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-
-      </div>
+      </FadeUp>
 
       {/* Mentors Grid */}
       {filteredMentors.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMentors.map((mentor) => (
-            <div 
+          {filteredMentors.map((mentor, idx) => (
+            <ScrollReveal 
               key={mentor.id}
-              className="p-6 rounded-2xl bg-white border border-[#E5E7EB] hover:border-[#00A86B] transition shadow-sm flex flex-col justify-between group"
+              direction="up" 
+              delay={(idx % 6) * 75}
             >
-              
-              <div className="space-y-4">
+              <div 
+                className="p-6 rounded-2xl bg-white border border-[#E5E7EB] hover:border-[#00A86B]/60 transition-all shadow-sm flex flex-col justify-between group card-lift h-full"
+              >
                 
-                {/* Header row: Avatar, Info, Badge */}
-                <div className="flex items-start gap-4">
-                  <div className="relative flex-shrink-0">
-                    <img 
-                      src={mentor.avatarUrl} 
-                      alt={mentor.name} 
-                      className="w-14 h-14 rounded-2xl object-cover border border-[#E5E7EB] group-hover:border-[#00A86B] transition"
-                    />
-                    {mentor.verifiedBadge && (
-                      <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#00A86B] text-white shadow-sm" title="Credential Verified">
-                        <ShieldCheck className="w-3.5 h-3.5" />
+                <div className="space-y-4">
+                  
+                  {/* Header row: Avatar, Info, Badge */}
+                  <div className="flex items-start gap-4">
+                    <div className="relative flex-shrink-0">
+                      <img 
+                        src={mentor.avatarUrl} 
+                        alt={mentor.name} 
+                        className="w-14 h-14 rounded-2xl object-cover border border-[#E5E7EB] group-hover:border-[#00A86B] transition avatar-zoom"
+                      />
+                      {mentor.verifiedBadge && (
+                        <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#00A86B] text-white shadow-sm" title="Credential Verified">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] uppercase font-mono font-semibold text-[#087A52] tracking-wider">
+                          {mentor.mentorType}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-[#101828] text-[19px] sm:text-[20px] truncate font-heading group-hover:text-[#00A86B] transition">
+                        {mentor.name}
+                      </h3>
+
+                      <p className="text-[14.5px] text-[#667085] truncate font-medium">
+                        {mentor.currentRole}
+                      </p>
+
+                      <p className="text-[13px] text-[#667085] truncate">
+                        {mentor.currentOrg}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Qualification & Academic Heritage */}
+                  <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[13.5px] space-y-1">
+                    <div className="font-semibold text-[#101828] flex items-center gap-1.5">
+                      <GraduationCap className="w-4 h-4 text-[#00A86B]" />
+                      <span className="truncate">{mentor.qualification}</span>
+                    </div>
+                    {mentor.previousEducation && (
+                      <div className="text-[12px] text-[#667085] truncate font-mono">
+                        {mentor.previousEducation}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-mono font-semibold text-[#087A52] tracking-wider">
-                        {mentor.mentorType}
+                  {/* Expertise Badges */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {mentor.expertise.slice(0, 3).map((exp, eIdx) => (
+                      <span 
+                        key={eIdx}
+                        className="px-2.5 py-0.5 rounded-md text-[11.5px] font-medium bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB]"
+                      >
+                        {exp}
                       </span>
-                    </div>
-
-                    <h3 className="font-bold text-[#101828] text-base truncate font-heading group-hover:text-[#00A86B] transition">
-                      {mentor.name}
-                    </h3>
-
-                    <p className="text-xs text-[#667085] truncate font-medium">
-                      {mentor.currentRole}
-                    </p>
-
-                    <p className="text-[11px] text-[#667085] truncate">
-                      {mentor.currentOrg}
-                    </p>
+                    ))}
+                    {mentor.expertise.length > 3 && (
+                      <span className="text-[11.5px] text-[#667085] self-center">
+                        +{mentor.expertise.length - 3} more
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Qualification & Academic Heritage */}
-                <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-xs space-y-1">
-                  <div className="font-semibold text-[#101828] flex items-center gap-1.5">
-                    <GraduationCap className="w-3.5 h-3.5 text-[#00A86B]" />
-                    <span className="truncate">{mentor.qualification}</span>
-                  </div>
-                  {mentor.previousEducation && (
-                    <div className="text-[11px] text-[#667085] truncate font-mono">
-                      {mentor.previousEducation}
+                {/* Bottom Meta & CTAs */}
+                <div className="pt-4 mt-4 border-t border-[#E5E7EB] space-y-3 text-[13.5px]">
+                  <div className="flex items-center justify-between text-[#667085]">
+                    <div className="flex items-center gap-1 font-bold text-[#101828]">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      <span>{mentor.rating}</span>
+                      <span className="text-[#667085] font-normal">({mentor.reviewCount} reviews)</span>
                     </div>
-                  )}
-                </div>
-
-                {/* Expertise Badges */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {mentor.expertise.slice(0, 3).map((exp, idx) => (
-                    <span 
-                      key={idx}
-                      className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB]"
-                    >
-                      {exp}
+                    <span className="font-mono text-[12px] text-[#667085]">
+                      {mentor.sessionsCompleted} sessions completed
                     </span>
-                  ))}
-                  {mentor.expertise.length > 3 && (
-                    <span className="text-[10px] text-[#667085] self-center">
-                      +{mentor.expertise.length - 3} more
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Bottom Meta & CTAs */}
-              <div className="pt-4 mt-4 border-t border-[#E5E7EB] space-y-3 text-xs">
-                <div className="flex items-center justify-between text-[#667085]">
-                  <div className="flex items-center gap-1 font-bold text-[#101828]">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    <span>{mentor.rating}</span>
-                    <span className="text-[#667085] font-normal">({mentor.reviewCount} reviews)</span>
                   </div>
-                  <span className="font-mono text-[11px] text-[#667085]">
-                    {mentor.sessionsCompleted} sessions completed
-                  </span>
-                </div>
 
-                <div className="flex items-center justify-between pt-1">
-                  <div>
-                    <div className="text-[10px] text-[#667085] uppercase font-mono">30 Min Session</div>
-                    <div className="font-extrabold text-[#101828] text-sm font-heading">
-                      {mentor.price30 === 0 ? (
-                        <span className="text-[#087A52]">Free Session</span>
-                      ) : (
-                        <span>₹{mentor.price30}</span>
-                      )}
+                  <div className="flex items-center justify-between pt-1">
+                    <div>
+                      <div className="text-[10px] text-[#667085] uppercase font-mono">30 Min Session</div>
+                      <div className="font-extrabold text-[#101828] text-[15.5px] font-heading">
+                        {mentor.price30 === 0 ? (
+                          <span className="text-[#087A52]">Free Session</span>
+                        ) : (
+                          <span>₹{mentor.price30}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onNavigate(`/mentors/${mentor.id}`)}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#00A86B] hover:text-[#00A86B] text-[#111827] font-semibold text-[13.5px] transition btn-secondary-action"
+                      >
+                        View Profile
+                      </button>
+                      <button
+                        onClick={() => setSelectedMentorForBooking(mentor)}
+                        className="px-4 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[14px] shadow-sm transition btn-primary-action"
+                      >
+                        Book Session
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onNavigate(`/mentors/${mentor.id}`)}
-                      className="px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#00A86B] hover:text-[#00A86B] text-[#111827] font-semibold text-xs transition"
-                    >
-                      View Profile
-                    </button>
-                    <button
-                      onClick={() => setSelectedMentorForBooking(mentor)}
-                      className="px-4 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition"
-                    >
-                      Book Session
-                    </button>
-                  </div>
                 </div>
-              </div>
 
-            </div>
+              </div>
+            </ScrollReveal>
           ))}
         </div>
       ) : mentors.length === 0 ? (

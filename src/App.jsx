@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './store/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
+import { PageTransition } from './components/Animation';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -147,9 +148,11 @@ function AppContent() {
       {/* Global Navbar */}
       <Navbar currentPath={currentPath} onNavigate={navigate} />
 
-      {/* Main Page Content */}
+      {/* Main Page Content with smooth subtle route transition */}
       <main className="flex-1">
-        {renderCurrentPage()}
+        <PageTransition key={currentPath}>
+          {renderCurrentPage()}
+        </PageTransition>
       </main>
 
       {/* Global Footer */}

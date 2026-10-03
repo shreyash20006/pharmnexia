@@ -7,12 +7,26 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: #111827;
     background-color: #FFFFFF;
+    font-size: 17px; /* Upgraded global body readability standard */
+    line-height: 1.65;
     -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Manrope', 'Poppins', 'Inter', sans-serif;
     color: #101828;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+  }
+
+  p {
+    line-height: 1.65;
   }
 
   ::-webkit-scrollbar {
@@ -31,46 +45,264 @@
   }
 }
 
-/* Global Reusable Card Styles */
-.card-clean {
-  background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.04);
-  transition: all 0.2s ease-in-out;
+/* ==============================================================================
+   1. GLOBAL BUTTON MICRO-INTERACTIONS & CARD HOVER
+   ============================================================================== */
+.btn-primary-action {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 200ms ease, 
+              box-shadow 200ms ease;
+  will-change: transform;
 }
 
-.card-clean:hover {
+.btn-primary-action:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 14px rgba(0, 168, 107, 0.22);
+}
+
+.btn-primary-action:active {
+  transform: translateY(0);
+}
+
+.btn-primary-action .btn-arrow {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.btn-primary-action:hover .btn-arrow {
+  transform: translateX(4px);
+}
+
+.btn-secondary-action {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 200ms ease, 
+              background-color 200ms ease;
+  will-change: transform;
+}
+
+.btn-secondary-action:hover {
+  transform: translateY(-1.5px);
   border-color: #00A86B;
-  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
 }
 
-/* Global Button Styles */
-.btn-primary {
-  background-color: #00A86B;
-  color: #FFFFFF;
-  font-weight: 500;
-  border-radius: 0.625rem;
-  padding: 0.625rem 1.125rem;
-  transition: background-color 0.15s ease-in-out;
+.btn-secondary-action:active {
+  transform: translateY(0);
 }
 
-.btn-primary:hover {
-  background-color: #087A52;
+/* Card Lift & Border Micro-interactions */
+.card-lift {
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 240ms ease, 
+              box-shadow 240ms ease;
+  will-change: transform;
 }
 
-.btn-secondary {
-  background-color: #FFFFFF;
-  color: #111827;
-  border: 1px solid #00A86B;
-  font-weight: 500;
-  border-radius: 0.625rem;
-  padding: 0.625rem 1.125rem;
-  transition: all 0.15s ease-in-out;
+.card-lift:hover {
+  transform: translateY(-3.5px);
+  border-color: #00A86B;
+  box-shadow: 0 10px 25px -5px rgba(16, 24, 40, 0.08), 0 8px 10px -6px rgba(16, 24, 40, 0.03);
 }
 
-.btn-secondary:hover {
-  background-color: #F8FAF9;
+.card-lift:hover .card-arrow {
+  transform: translateX(4px);
+}
+
+.card-lift:hover .avatar-zoom {
+  transform: scale(1.025);
+}
+
+.card-arrow {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.avatar-zoom {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* ==============================================================================
+   2. SCROLL REVEAL ANIMATIONS (HARDWARE-ACCELERATED)
+   ============================================================================== */
+.reveal-base {
+  opacity: 0;
+  transition-property: opacity, transform;
+  transition-duration: 650ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+}
+
+/* Reveal Directions */
+.reveal-up {
+  transform: translateY(30px);
+}
+
+.reveal-left {
+  transform: translateX(-40px);
+}
+
+.reveal-right {
+  transform: translateX(40px);
+}
+
+.reveal-scale {
+  transform: scale(0.97);
+}
+
+/* Triggered State */
+.reveal-visible {
+  opacity: 1 !important;
+  transform: translate(0, 0) scale(1) !important;
+}
+
+/* Mobile responsive animation distances */
+@media (max-width: 640px) {
+  .reveal-base {
+    transition-duration: 520ms;
+  }
+  .reveal-up {
+    transform: translateY(18px);
+  }
+  .reveal-left {
+    transform: translateX(-20px);
+  }
+  .reveal-right {
+    transform: translateX(20px);
+  }
+}
+
+/* ==============================================================================
+   3. HERO ENTRANCE KEYFRAMES (Initial Page Load Sequence)
+   ============================================================================== */
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroSlideLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroSlideRight {
+  0% {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-hero-eyebrow {
+  animation: heroFadeUp 600ms cubic-bezier(0.16, 1, 0.3, 1) 0ms forwards;
+}
+
+.animate-hero-h1-1 {
+  animation: heroFadeUp 650ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+}
+
+.animate-hero-h1-2 {
+  animation: heroFadeUp 650ms cubic-bezier(0.16, 1, 0.3, 1) 220ms forwards;
+}
+
+.animate-hero-desc {
+  animation: heroFadeUp 650ms cubic-bezier(0.16, 1, 0.3, 1) 320ms forwards;
+}
+
+.animate-hero-btn-primary {
+  animation: heroSlideLeft 600ms cubic-bezier(0.16, 1, 0.3, 1) 420ms forwards;
+}
+
+.animate-hero-btn-secondary {
+  animation: heroSlideRight 600ms cubic-bezier(0.16, 1, 0.3, 1) 500ms forwards;
+}
+
+.animate-hero-paths {
+  animation: heroFadeUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 580ms forwards;
+}
+
+/* ==============================================================================
+   4. ROUTE PAGE TRANSITIONS & SPECIALIZED ANIMATIONS
+   ============================================================================== */
+@keyframes pageFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+/* Certificate Shake on Invalid ID */
+@keyframes certShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: certShake 400ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Certificate Verified Stamp Pulse */
+@keyframes certBadgePulse {
+  0% { transform: scale(0.92); opacity: 0; }
+  60% { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-stamp {
+  animation: certBadgePulse 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==============================================================================
+   5. ACCESSIBILITY: PREFERS-REDUCED-MOTION
+   ============================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal-base,
+  .reveal-up,
+  .reveal-left,
+  .reveal-right,
+  .reveal-scale,
+  .card-lift,
+  .btn-primary-action,
+  .btn-secondary-action,
+  .page-enter {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* Print styles for certificates */
