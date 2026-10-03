@@ -8,73 +8,97 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. CUSTOM TYPES & ENUMS
-CREATE TYPE user_role AS ENUM (
-  'STUDENT',
-  'MENTOR',
-  'ADMIN',
-  'SUPER_ADMIN',
-  'CONTENT_MANAGER'
-);
+-- 2. CUSTOM TYPES & ENUMS (Idempotent: safe against re-runs)
+DO $$ BEGIN
+  CREATE TYPE user_role AS ENUM (
+    'STUDENT',
+    'MENTOR',
+    'ADMIN',
+    'SUPER_ADMIN',
+    'CONTENT_MANAGER'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE mentor_status AS ENUM (
-  'PENDING',
-  'VERIFIED',
-  'REJECTED',
-  'SUSPENDED'
-);
+DO $$ BEGIN
+  CREATE TYPE mentor_status AS ENUM (
+    'PENDING',
+    'VERIFIED',
+    'REJECTED',
+    'SUSPENDED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE mentor_type AS ENUM (
-  'FACULTY',
-  'ALUMNI',
-  'INDUSTRY',
-  'RESEARCHERS',
-  'EXAM_MENTORS'
-);
+DO $$ BEGIN
+  CREATE TYPE mentor_type AS ENUM (
+    'FACULTY',
+    'ALUMNI',
+    'INDUSTRY',
+    'RESEARCHERS',
+    'EXAM_MENTORS'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE payment_model AS ENUM (
-  'FREE',
-  'PAID',
-  'HONORARIUM',
-  'VOLUNTEER'
-);
+DO $$ BEGIN
+  CREATE TYPE payment_model AS ENUM (
+    'FREE',
+    'PAID',
+    'HONORARIUM',
+    'VOLUNTEER'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE booking_status AS ENUM (
-  'PENDING_PAYMENT',
-  'CONFIRMED',
-  'COMPLETED',
-  'CANCELLED_BY_STUDENT',
-  'CANCELLED_BY_MENTOR',
-  'RESCHEDULED'
-);
+DO $$ BEGIN
+  CREATE TYPE booking_status AS ENUM (
+    'PENDING_PAYMENT',
+    'CONFIRMED',
+    'COMPLETED',
+    'CANCELLED_BY_STUDENT',
+    'CANCELLED_BY_MENTOR',
+    'RESCHEDULED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE payment_status AS ENUM (
-  'CREATED',
-  'SUCCESS',
-  'FAILED',
-  'REFUNDED'
-);
+DO $$ BEGIN
+  CREATE TYPE payment_status AS ENUM (
+    'CREATED',
+    'SUCCESS',
+    'FAILED',
+    'REFUNDED'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE opportunity_category AS ENUM (
-  'INTERNSHIP',
-  'JOB',
-  'RESEARCH',
-  'FELLOWSHIP',
-  'SCHOLARSHIP',
-  'COMPETITION',
-  'CONFERENCE'
-);
+DO $$ BEGIN
+  CREATE TYPE opportunity_category AS ENUM (
+    'INTERNSHIP',
+    'JOB',
+    'RESEARCH',
+    'FELLOWSHIP',
+    'SCHOLARSHIP',
+    'COMPETITION',
+    'CONFERENCE'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE resource_category AS ENUM (
-  'NOTES',
-  'CAREER_GUIDES',
-  'RESEARCH',
-  'EXAM_PREP',
-  'TEMPLATES',
-  'PPTS',
-  'ARTICLES',
-  'VIDEOS'
-);
+DO $$ BEGIN
+  CREATE TYPE resource_category AS ENUM (
+    'NOTES',
+    'CAREER_GUIDES',
+    'RESEARCH',
+    'EXAM_PREP',
+    'TEMPLATES',
+    'PPTS',
+    'ARTICLES',
+    'VIDEOS'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ==============================================================================
 -- 3. CORE IDENTITY & USER PROFILES
@@ -107,13 +131,14 @@ CREATE TABLE IF NOT EXISTS public.students (
 );
 
 -- Mentors Detailed Profile
+-- NOTE: "current_role" is quoted because current_role is a PostgreSQL reserved keyword
 CREATE TABLE IF NOT EXISTS public.mentors (
   id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
   verification_status mentor_status NOT NULL DEFAULT 'PENDING',
   verified_badge BOOLEAN NOT NULL DEFAULT FALSE,
   mentor_type mentor_type NOT NULL DEFAULT 'ALUMNI',
   payment_model payment_model NOT NULL DEFAULT 'PAID',
-  current_role VARCHAR(255) NOT NULL,
+  "current_role" VARCHAR(255) NOT NULL,
   current_org VARCHAR(255) NOT NULL,
   qualification VARCHAR(255) NOT NULL,
   previous_education TEXT NOT NULL, -- e.g. B.Pharm -> CAT -> IIM
@@ -252,7 +277,7 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   scheduled_time VARCHAR(50) NOT NULL,
   status booking_status NOT NULL DEFAULT 'CONFIRMED',
   student_notes TEXT,
-  meeting_link TEXT, -- Secure room / Google Meet / Zoom link (visible only when session confirmed)
+  meeting_link TEXT, -- Secure room link
   cancellation_reason TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -378,26 +403,6 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.announcements (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  target_role user_role, -- NULL = ALL
-  is_active BOOLEAN DEFAULT TRUE,
-  published_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.audit_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  action VARCHAR(100) NOT NULL, -- e.g. 'MENTOR_VERIFIED', 'PAYMENT_RECEIVED', 'CERTIFICATE_ISSUED'
-  target_table VARCHAR(100) NOT NULL,
-  target_id VARCHAR(100) NOT NULL,
-  metadata JSONB,
-  ip_address VARCHAR(50),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 -- ==============================================================================
 -- 10. INDEXES FOR HIGH-PERFORMANCE QUERIES
 -- ==============================================================================
@@ -413,7 +418,6 @@ CREATE INDEX IF NOT EXISTS idx_certificates_cert_id ON public.certificates(certi
 CREATE INDEX IF NOT EXISTS idx_opportunities_category_deadline ON public.opportunities(category, deadline);
 CREATE INDEX IF NOT EXISTS idx_resources_category ON public.resources(category);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications(user_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON public.audit_logs(actor_id, created_at);
 
 -- ==============================================================================
 -- 11. ROW LEVEL SECURITY (RLS) POLICIES
@@ -429,7 +433,6 @@ ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.program_registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Helper functions for RLS checks
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -442,71 +445,91 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Profiles: Public can read basic profile; users can edit own profile; admins can do all
+-- Profiles
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone"
   ON public.profiles FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id);
 
--- Students: Only the student or an admin can view private student data
+-- Students
+DROP POLICY IF EXISTS "Students can view own data" ON public.students;
 CREATE POLICY "Students can view own data"
   ON public.students FOR SELECT
   USING (auth.uid() = id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Students can update own data" ON public.students;
 CREATE POLICY "Students can update own data"
   ON public.students FOR UPDATE
   USING (auth.uid() = id);
 
--- Mentors: Public can view verified mentors; Mentors can edit own profile
+-- Mentors
+DROP POLICY IF EXISTS "Verified mentors viewable by everyone" ON public.mentors;
 CREATE POLICY "Verified mentors viewable by everyone"
   ON public.mentors FOR SELECT
   USING (verification_status = 'VERIFIED' OR auth.uid() = id OR public.is_admin());
 
+DROP POLICY IF EXISTS "Mentors can update own profile" ON public.mentors;
 CREATE POLICY "Mentors can update own profile"
   ON public.mentors FOR UPDATE
   USING (auth.uid() = id OR public.is_admin());
 
--- Mentor Credentials: Private, visible ONLY to the mentor and Admins
+-- Mentor Credentials
+DROP POLICY IF EXISTS "Mentor credentials viewable by mentor and admin" ON public.mentor_credentials;
 CREATE POLICY "Mentor credentials viewable by mentor and admin"
   ON public.mentor_credentials FOR SELECT
   USING (mentor_id = auth.uid() OR public.is_admin());
 
+DROP POLICY IF EXISTS "Only admins can approve/update mentor credentials" ON public.mentor_credentials;
 CREATE POLICY "Only admins can approve/update mentor credentials"
   ON public.mentor_credentials FOR UPDATE
   USING (public.is_admin());
 
--- Bookings: Viewable only by involved student, mentor, or admin
+-- Program Registrations
+DROP POLICY IF EXISTS "Students can view own program registrations" ON public.program_registrations;
+CREATE POLICY "Students can view own program registrations"
+  ON public.program_registrations FOR SELECT
+  USING (student_id = auth.uid() OR public.is_admin());
+
+DROP POLICY IF EXISTS "Students can register for programs" ON public.program_registrations;
+CREATE POLICY "Students can register for programs"
+  ON public.program_registrations FOR INSERT
+  WITH CHECK (student_id = auth.uid());
+
+-- Bookings
+DROP POLICY IF EXISTS "Bookings viewable by student, mentor, or admin" ON public.bookings;
 CREATE POLICY "Bookings viewable by student, mentor, or admin"
   ON public.bookings FOR SELECT
   USING (student_id = auth.uid() OR mentor_id = auth.uid() OR public.is_admin());
 
+DROP POLICY IF EXISTS "Students can insert own booking" ON public.bookings;
 CREATE POLICY "Students can insert own booking"
   ON public.bookings FOR INSERT
   WITH CHECK (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "Booking status updateable by participants or admin" ON public.bookings;
 CREATE POLICY "Booking status updateable by participants or admin"
   ON public.bookings FOR UPDATE
   USING (student_id = auth.uid() OR mentor_id = auth.uid() OR public.is_admin());
 
--- Payments: Only student and admins can view payment logs
+-- Payments
+DROP POLICY IF EXISTS "Payments viewable by payer or admin" ON public.payments;
 CREATE POLICY "Payments viewable by payer or admin"
   ON public.payments FOR SELECT
   USING (student_id = auth.uid() OR public.is_admin());
 
--- Certificates: Public can view authentic certificates by certificate_id
+-- Certificates
+DROP POLICY IF EXISTS "Certificates public for verification" ON public.certificates;
 CREATE POLICY "Certificates public for verification"
   ON public.certificates FOR SELECT
   USING (is_revoked = false OR public.is_admin());
 
--- Notifications: Only recipient can view/mark as read
+-- Notifications
+DROP POLICY IF EXISTS "Notifications viewable by recipient" ON public.notifications;
 CREATE POLICY "Notifications viewable by recipient"
   ON public.notifications FOR ALL
   USING (user_id = auth.uid());
-
--- Audit logs: Strict Admin only access
-CREATE POLICY "Audit logs admin access only"
-  ON public.audit_logs FOR SELECT
-  USING (public.is_admin());
