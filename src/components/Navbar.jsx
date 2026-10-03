@@ -46,16 +46,17 @@ export const Navbar = ({ currentPath, onNavigate }) => {
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-[#E5E7EB] text-[#111827]">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-[1280px] mx-auto px-5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-[74px] sm:h-[76px] lg:h-20">
           
-          {/* Logo Container (Unified Brand Element) */}
+          {/* Logo Container (Unified Brand Element, Vertically Centered) */}
           <div className="flex items-center flex-shrink-0">
             <button 
               onClick={() => handleNav('/')} 
-              className="flex items-center group text-left focus:outline-none"
+              className="flex items-center group text-left focus:outline-none transition-opacity hover:opacity-95"
+              aria-label="PharmNexia Home"
             >
-              <PharmNexiaLogo size="sm" theme="light" />
+              <PharmNexiaLogo size="navbar" theme="light" />
             </button>
           </div>
 
@@ -80,7 +81,7 @@ export const Navbar = ({ currentPath, onNavigate }) => {
           </nav>
 
           {/* Right Action Bar (All items vertically centered, white-space: nowrap) */}
-          <div className="hidden md:flex items-center gap-3.5 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-3.5 flex-shrink-0">
             {/* Verify Certificate */}
             <button
               onClick={() => handleNav('/verify-certificate')}
@@ -212,21 +213,22 @@ export const Navbar = ({ currentPath, onNavigate }) => {
             )}
           </div>
 
-          {/* Mobile Menu Toggle Button */}
-          <div className="lg:hidden flex items-center gap-2">
+          {/* Mobile Actions: Certificate Button (44x44) & Hamburger Menu (44x44) with 10-12px gap */}
+          <div className="lg:hidden flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
             <button
               onClick={() => handleNav('/verify-certificate')}
-              className="p-2 rounded-xl bg-[#F8FAF9] text-[#00A86B] border border-[#E5E7EB]"
-              title="Verify Certificate"
+              className="w-11 h-11 rounded-xl bg-[#F8FAF9] text-[#00A86B] border border-[#E5E7EB] hover:border-[#00A86B] hover:bg-white flex items-center justify-center transition-all active:scale-95 focus:outline-none shadow-xs"
+              title="Verify Certificate Authenticity"
+              aria-label="Verify Certificate"
             >
-              <Award className="w-4 h-4" />
+              <Award className="w-5 h-5 text-[#00A86B]" />
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB] hover:border-[#00A86B] transition-colors focus:outline-none"
+              className="w-11 h-11 rounded-xl bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB] hover:border-[#00A86B] hover:bg-white flex items-center justify-center transition-all active:scale-95 focus:outline-none shadow-xs"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-6 h-6 text-[#111827]" /> : <Menu className="w-6 h-6 text-[#111827]" />}
             </button>
           </div>
 
