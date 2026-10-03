@@ -22,8 +22,28 @@ export const MentorProfilePage = ({ mentorId, onNavigate }) => {
   const [selectedSessionDuration, setSelectedSessionDuration] = useState(30);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
-  // Find mentor by id (fallback to first mentor if not found)
-  const mentor = mentors.find(m => m.id === mentorId) || mentors[0];
+  // Find mentor by id
+  const mentor = mentors.find(m => m.id === mentorId);
+
+  if (!mentor) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center mx-auto">
+          <GraduationCap className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-bold text-[#101828] font-heading">Mentor Profile Not Found</h2>
+        <p className="text-xs text-[#667085] max-w-md mx-auto">
+          This mentor profile is either unavailable or has not been published yet. Check out verified practitioners in our directory.
+        </p>
+        <button 
+          onClick={() => onNavigate('/mentors')}
+          className="px-4 py-2 rounded-xl bg-[#00A86B] text-white text-xs font-semibold hover:bg-[#087A52] transition shadow-sm"
+        >
+          Browse Mentors Directory
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 bg-white text-[#111827]">

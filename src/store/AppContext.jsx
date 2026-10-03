@@ -5,115 +5,70 @@ import { OPPORTUNITIES } from '../data/opportunitiesData';
 import { RESOURCES } from '../data/resourcesData';
 import { INITIAL_CERTIFICATES } from '../data/certificatesData';
 import { CAREER_PATHS } from '../data/careerPathsData';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const AppContext = createContext(null);
 
-const DEFAULT_STUDENT = {
-  id: "std-001",
-  name: "Aarav Patel",
-  email: "aarav.patel@student.edu",
-  role: "STUDENT",
-  college: "Bombay College of Pharmacy",
-  degree: "B.Pharm",
-  year: "3rd Year (Semester 6)",
-  expectedGraduation: "2027",
-  careerInterests: ["pharmacovigilance", "mba-after-bpharm", "regulatory-affairs"],
-  avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200",
-  bio: "Aspiring drug safety and pharmaceutical strategy enthusiast exploring high-growth corporate careers."
-};
-
-const DEFAULT_MENTOR_USER = {
-  id: "mentor-03",
-  name: "Dr. Shalini Nair",
-  email: "dr.nair@cro-safety.com",
-  role: "MENTOR",
-  mentorProfileId: "mentor-03",
-  avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200",
-  currentRole: "Lead Drug Safety Scientist & PV Consultant",
-  currentOrg: "Global Clinical Research Organization"
-};
-
-const DEFAULT_ADMIN_USER = {
-  id: "adm-001",
-  name: "Dr. K. Sen",
-  email: "admin@pharmnexia.in",
-  role: "ADMIN",
-  title: "Academic & Career Council Director",
-  avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200"
-};
-
-const INITIAL_BOOKINGS = [
-  {
-    id: "BK-2026-9041",
-    bookingCode: "BK-2026-9041",
-    studentId: "std-001",
-    studentName: "Aarav Patel",
-    studentEmail: "aarav.patel@student.edu",
-    mentorId: "mentor-03",
-    mentorName: "Dr. Shalini Nair",
-    mentorRole: "Lead Drug Safety Scientist & PV Consultant",
-    mentorAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200",
-    scheduledDate: "2026-10-18",
-    scheduledTime: "07:00 PM - 07:30 PM IST",
-    sessionDuration: 30,
-    status: "CONFIRMED",
-    meetingLink: "https://meet.pharmnexia.in/room/safety-session-9041",
-    paymentAmount: 199,
-    paymentStatus: "PAID",
-    notes: "Guidance on transition into Drug Safety Associate roles and Argus database preparation."
-  }
-];
-
-const INITIAL_AUDIT_LOGS = [
-  {
-    id: "log-1",
-    timestamp: "2026-10-03 14:22:10",
-    actor: "Dr. K. Sen (ADMIN)",
-    action: "MENTOR_CREDENTIAL_VERIFIED",
-    details: "Approved degree certificates for Dr. Arvind Verma",
-    status: "SUCCESS"
-  },
-  {
-    id: "log-2",
-    timestamp: "2026-10-03 12:45:00",
-    actor: "Payment Gateway Webhook",
-    action: "PAYMENT_SETTLED",
-    details: "₹199 booking fee captured for BK-2026-9041 (Student: Aarav Patel)",
-    status: "SUCCESS"
-  },
-  {
-    id: "log-3",
-    timestamp: "2026-10-02 18:30:15",
-    actor: "System Automation",
-    action: "CERTIFICATE_HASH_GENERATED",
-    details: "Issued verifiable certificate PHN-2026-000001 to Aarav Patel",
-    status: "SUCCESS"
-  }
-];
-
 export const AppProvider = ({ children }) => {
-  // Authentication & Role
+  // 1. Current Authenticated User (Defaults to null - NO dummy credentials)
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('pharmnexia_user');
-    return saved ? JSON.parse(saved) : DEFAULT_STUDENT;
+    try {
+      const saved = localStorage.getItem('pharmnexia_user');
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Purge legacy mock users
+      if (parsed?.id === 'std-001' || parsed?.id === 'mentor-03' || parsed?.id === 'adm-001') {
+        localStorage.removeItem('pharmnexia_user');
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   });
 
-  // State slices
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // 2. Mentors State (Empty default / Loaded from Supabase DB)
   const [mentors, setMentors] = useState(() => {
-    const saved = localStorage.getItem('pharmnexia_mentors');
-    return saved ? JSON.parse(saved) : MENTORS;
+    try {
+      const saved = localStorage.getItem('pharmnexia_mentors');
+      if (!saved) return MENTORS;
+      const parsed = JSON.parse(saved);
+      // Purge legacy mock mentors
+      if (Array.isArray(parsed) && parsed.some(m => m.id === 'mentor-01' || m.id === 'mentor-02')) {
+        localStorage.removeItem('pharmnexia_mentors');
+        return [];
+      }
+      return parsed;
+    } catch {
+      return [];
+    }
   });
 
+  // 3. Bookings State (Defaults to empty array for real users)
   const [bookings, setBookings] = useState(() => {
-    const saved = localStorage.getItem('pharmnexia_bookings');
-    return saved ? JSON.parse(saved) : INITIAL_BOOKINGS;
+    try {
+      const saved = localStorage.getItem('pharmnexia_bookings');
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.some(b => b.id === 'BK-2026-9041')) {
+        localStorage.removeItem('pharmnexia_bookings');
+        return [];
+      }
+      return parsed;
+    } catch {
+      return [];
+    }
   });
 
+  // 4. Certificates State
   const [certificates, setCertificates] = useState(() => {
     const saved = localStorage.getItem('pharmnexia_certificates');
     return saved ? JSON.parse(saved) : INITIAL_CERTIFICATES;
   });
 
+  // 5. Opportunities State
   const [opportunities, setOpportunities] = useState(() => {
     const saved = localStorage.getItem('pharmnexia_opportunities');
     return saved ? JSON.parse(saved) : OPPORTUNITIES;
@@ -121,40 +76,127 @@ export const AppProvider = ({ children }) => {
 
   const [savedOpportunityIds, setSavedOpportunityIds] = useState(() => {
     const saved = localStorage.getItem('pharmnexia_saved_opps');
-    return saved ? JSON.parse(saved) : ["opp-01", "opp-03"];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [enrolledProgramIds, setEnrolledProgramIds] = useState(() => {
     const saved = localStorage.getItem('pharmnexia_enrolled_progs');
-    return saved ? JSON.parse(saved) : ["prog-pv-mastery"];
+    return saved ? JSON.parse(saved) : [];
   });
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: "notif-1",
-      title: "Mentorship Session Scheduled",
-      message: "Your upcoming 1-on-1 with Dr. Shalini Nair is confirmed for Oct 18, 07:00 PM IST.",
-      type: "BOOKING",
-      time: "2 hours ago",
-      isRead: false,
-      link: "/dashboard"
-    },
-    {
-      id: "notif-2",
-      title: "Certificate Issued!",
-      message: "Congratulations! Your certificate for Pharmacovigilance Mastery is ready for verification.",
-      type: "CERTIFICATE",
-      time: "Yesterday",
-      isRead: false,
-      link: "/verify-certificate/PHN-2026-000001"
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
 
-  const [auditLogs, setAuditLogs] = useState(INITIAL_AUDIT_LOGS);
+  // Helper to map Supabase User / Google Auth User to application user object
+  const mapSupabaseUser = (user) => {
+    if (!user) return null;
+    const meta = user.user_metadata || {};
+    const fullName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
+    return {
+      id: user.id,
+      email: user.email,
+      name: fullName,
+      role: meta.role || 'STUDENT',
+      college: meta.college || '',
+      degree: meta.degree || 'B.Pharm',
+      year: meta.year || '1st Year',
+      bio: meta.bio || '',
+      avatar: meta.avatar_url || meta.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`,
+      provider: user.app_metadata?.provider || 'supabase'
+    };
+  };
+
+  // Sync Supabase Auth & Real DB Mentors
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+
+    // A. Check active Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const appUser = mapSupabaseUser(session.user);
+        setCurrentUser(appUser);
+      }
+      setAuthLoading(false);
+    }).catch(err => {
+      console.warn('[PharmNexia Auth] Session check error:', err);
+      setAuthLoading(false);
+    });
+
+    // B. Subscribe to Auth state changes (Google OAuth redirect, Login, Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const appUser = mapSupabaseUser(session.user);
+        setCurrentUser(appUser);
+      } else {
+        setCurrentUser(null);
+        localStorage.removeItem('pharmnexia_user');
+      }
+      setAuthLoading(false);
+    });
+
+    // C. Fetch real verified mentors from Supabase database
+    const fetchSupabaseMentors = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('mentors')
+          .select(`
+            *,
+            profiles:user_id(full_name, email, avatar_url)
+          `)
+          .eq('verification_status', 'VERIFIED');
+
+        if (!error && data && data.length > 0) {
+          const mapped = data.map(m => ({
+            id: m.id,
+            name: m.profiles?.full_name || 'Verified Mentor',
+            email: m.profiles?.email || '',
+            avatarUrl: m.profiles?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.profiles?.full_name || 'Mentor')}`,
+            verificationStatus: 'verified',
+            verifiedBadge: true,
+            currentRole: m.current_role,
+            currentOrg: m.current_org,
+            qualification: m.qualification,
+            previousEducation: m.previous_education,
+            mentorType: m.mentor_type || 'Alumni',
+            paymentModel: m.payment_model || 'Free',
+            careerPathSlugs: m.career_paths || [],
+            expertise: m.expertise || [],
+            rating: Number(m.rating) || 5.0,
+            reviewCount: Number(m.review_count) || 0,
+            sessionsCompleted: Number(m.sessions_completed) || 0,
+            sessionDuration: '30 / 60 min',
+            price30: Number(m.price_30) || 0,
+            price60: Number(m.price_60) || 0,
+            about: m.about || '',
+            whatICanHelpWith: m.what_i_can_help_with || [],
+            availableDays: m.available_days || ['Saturday', 'Sunday'],
+            availableSlots: m.available_slots || ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
+            reviews: []
+          }));
+          setMentors(mapped);
+        }
+      } catch (err) {
+        console.warn('[PharmNexia] Database mentors fetch:', err);
+      }
+    };
+
+    fetchSupabaseMentors();
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   // Sync to LocalStorage
   useEffect(() => {
-    localStorage.setItem('pharmnexia_user', JSON.stringify(currentUser));
+    if (currentUser) {
+      localStorage.setItem('pharmnexia_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('pharmnexia_user');
+    }
   }, [currentUser]);
 
   useEffect(() => {
@@ -181,23 +223,112 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('pharmnexia_enrolled_progs', JSON.stringify(enrolledProgramIds));
   }, [enrolledProgramIds]);
 
-  // Auth actions
-  const switchRole = (role) => {
-    if (role === 'STUDENT') setCurrentUser(DEFAULT_STUDENT);
-    else if (role === 'MENTOR') setCurrentUser(DEFAULT_MENTOR_USER);
-    else if (role === 'ADMIN') setCurrentUser(DEFAULT_ADMIN_USER);
-    else if (role === 'GUEST') setCurrentUser(null);
+  // ==============================================================================
+  // AUTHENTICATION ACTIONS (REAL GOOGLE & EMAIL AUTH VIA SUPABASE)
+  // ==============================================================================
+
+  // 1. Google OAuth Sign In
+  const loginWithGoogle = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error(
+        "Supabase credentials not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your Vercel Environment Variables."
+      );
+    }
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
+        }
+      }
+    });
+
+    if (error) throw error;
+    return data;
   };
 
-  const loginUser = (email, password, asRole = 'STUDENT') => {
-    if (asRole === 'ADMIN') setCurrentUser(DEFAULT_ADMIN_USER);
-    else if (asRole === 'MENTOR') setCurrentUser(DEFAULT_MENTOR_USER);
-    else setCurrentUser({ ...DEFAULT_STUDENT, email: email || DEFAULT_STUDENT.email });
-    return true;
+  // 2. Email & Password Sign In
+  const loginWithEmail = async (email, password) => {
+    if (!supabase || !isSupabaseConfigured) {
+      // Local fallback when Supabase keys are pending
+      const mockUser = {
+        id: `usr-${Date.now()}`,
+        email: email.trim(),
+        name: email.split('@')[0],
+        role: 'STUDENT',
+        degree: 'B.Pharm',
+        year: '3rd Year',
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(email)}`,
+        provider: 'local'
+      };
+      setCurrentUser(mockUser);
+      return { user: mockUser };
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
+
+    if (error) throw error;
+    return data;
   };
 
-  const logoutUser = () => {
+  // 3. Email & Password Sign Up
+  const signupWithEmail = async (email, password, metadata = {}) => {
+    if (!supabase || !isSupabaseConfigured) {
+      const mockUser = {
+        id: `usr-${Date.now()}`,
+        email: email.trim(),
+        name: metadata.name || email.split('@')[0],
+        role: 'STUDENT',
+        degree: metadata.degree || 'B.Pharm',
+        year: metadata.year || '1st Year',
+        college: metadata.college || '',
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(metadata.name || email)}`,
+        provider: 'local'
+      };
+      setCurrentUser(mockUser);
+      return { user: mockUser };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: {
+          full_name: metadata.name || '',
+          degree: metadata.degree || 'B.Pharm',
+          year: metadata.year || '1st Year',
+          college: metadata.college || '',
+          role: 'STUDENT'
+        }
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  };
+
+  // Compatibility helper
+  const loginUser = (email, password, role = 'STUDENT') => {
+    return loginWithEmail(email, password);
+  };
+
+  // Sign Out
+  const logoutUser = async () => {
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.warn('Sign out error:', err);
+      }
+    }
     setCurrentUser(null);
+    localStorage.removeItem('pharmnexia_user');
   };
 
   const updateStudentProfile = (updatedFields) => {
@@ -212,7 +343,9 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Booking actions
+  // ==============================================================================
+  // BOOKING ACTIONS
+  // ==============================================================================
   const createBooking = ({ mentorId, sessionDuration, scheduledDate, scheduledTime, notes, paymentAmount, studentInfo }) => {
     const mentor = mentors.find(m => m.id === mentorId);
     const newBookingId = `BK-2026-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -220,12 +353,12 @@ export const AppProvider = ({ children }) => {
       id: newBookingId,
       bookingCode: newBookingId,
       studentId: currentUser?.id || "guest-std",
-      studentName: studentInfo?.name || currentUser?.name || "Student",
-      studentEmail: studentInfo?.email || currentUser?.email || "student@example.com",
+      studentName: studentInfo?.name || currentUser?.name || "Student Aspirant",
+      studentEmail: studentInfo?.email || currentUser?.email || "",
       mentorId: mentor?.id,
-      mentorName: mentor?.name,
-      mentorRole: mentor?.currentRole,
-      mentorAvatar: mentor?.avatarUrl,
+      mentorName: mentor?.name || "Verified Mentor",
+      mentorRole: mentor?.currentRole || "Career Mentor",
+      mentorAvatar: mentor?.avatarUrl || "",
       scheduledDate,
       scheduledTime,
       sessionDuration: Number(sessionDuration),
@@ -239,20 +372,11 @@ export const AppProvider = ({ children }) => {
 
     setBookings(prev => [newBooking, ...prev]);
 
-    // Add notification
     addNotification({
       title: "Booking Confirmed!",
-      message: `Your mentorship session with ${mentor?.name} is scheduled for ${scheduledDate} at ${scheduledTime}.`,
+      message: `Your mentorship session with ${mentor?.name || 'Mentor'} is scheduled for ${scheduledDate} at ${scheduledTime}.`,
       type: "BOOKING",
       link: "/dashboard"
-    });
-
-    // Add Audit log
-    addAuditLog({
-      actor: `${currentUser?.name || 'Student'} (${currentUser?.role || 'STUDENT'})`,
-      action: "BOOKING_CREATED",
-      details: `Booked ${sessionDuration}m session with ${mentor?.name} for ${scheduledDate}. Amount: ₹${paymentAmount}`,
-      status: "SUCCESS"
     });
 
     return newBooking;
@@ -262,14 +386,8 @@ export const AppProvider = ({ children }) => {
     setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: "CANCELLED", cancellationReason: reason } : b));
     addNotification({
       title: "Booking Cancelled",
-      message: `Session ${bookingId} has been cancelled. If paid, refund is initiated automatically.`,
+      message: `Session ${bookingId} has been cancelled.`,
       type: "BOOKING"
-    });
-    addAuditLog({
-      actor: `${currentUser?.name} (${currentUser?.role})`,
-      action: "BOOKING_CANCELLED",
-      details: `Booking ${bookingId} cancelled. Reason: ${reason}`,
-      status: "SUCCESS"
     });
   };
 
@@ -280,15 +398,9 @@ export const AppProvider = ({ children }) => {
       const prog = PROGRAMS.find(p => p.id === programId);
       addNotification({
         title: "Enrolled in Program",
-        message: `You have successfully enrolled in ${prog?.title || 'the program'}. Check your dashboard for the schedule!`,
+        message: `You have successfully enrolled in ${prog?.title || 'the program'}. Check your dashboard!`,
         type: "PROGRAM",
         link: "/dashboard"
-      });
-      addAuditLog({
-        actor: `${currentUser?.name} (STUDENT)`,
-        action: "PROGRAM_ENROLLED",
-        details: `Enrolled in ${prog?.title} (ID: ${programId})`,
-        status: "SUCCESS"
       });
     }
   };
@@ -317,12 +429,6 @@ export const AppProvider = ({ children }) => {
       verificationUrl: `https://pharmnexia.in/verify-certificate/${certId}`
     };
     setCertificates(prev => [cert, ...prev]);
-    addAuditLog({
-      actor: `${currentUser?.name} (ADMIN)`,
-      action: "CERTIFICATE_ISSUED",
-      details: `Generated Certificate ${certId} for ${cert.studentName} (${cert.programName})`,
-      status: "SUCCESS"
-    });
     return cert;
   };
 
@@ -338,13 +444,6 @@ export const AppProvider = ({ children }) => {
       }
       return m;
     }));
-
-    addAuditLog({
-      actor: `${currentUser?.name} (ADMIN)`,
-      action: `MENTOR_STATUS_${status.toUpperCase()}`,
-      details: `Updated mentor ${mentorId} to ${status}. Notes: ${notes || 'Admin reviewed credentials'}`,
-      status: "SUCCESS"
-    });
   };
 
   const addMentor = (mentorData) => {
@@ -359,15 +458,8 @@ export const AppProvider = ({ children }) => {
       sessionsCompleted: 0
     };
     setMentors(prev => [newMentor, ...prev]);
-    addAuditLog({
-      actor: `${currentUser?.name} (ADMIN)`,
-      action: "MENTOR_ADDED",
-      details: `Created new mentor record: ${newMentor.name} (Type: ${newMentor.mentorType})`,
-      status: "SUCCESS"
-    });
   };
 
-  // Notification & Audit Helpers
   const addNotification = ({ title, message, type = "SYSTEM", link = null }) => {
     const newNotif = {
       id: `notif-${Date.now()}`,
@@ -401,7 +493,11 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider
       value={{
         currentUser,
-        switchRole,
+        authLoading,
+        isSupabaseConfigured,
+        loginWithGoogle,
+        loginWithEmail,
+        signupWithEmail,
         loginUser,
         logoutUser,
         updateStudentProfile,
@@ -439,3 +535,5 @@ export const useApp = () => {
   if (!context) throw new Error("useApp must be used within an AppProvider");
   return context;
 };
+
+export default AppContext;

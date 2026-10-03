@@ -44,6 +44,29 @@ export const AdminDashboard = ({ onNavigate }) => {
     auditLogs 
   } = useApp();
 
+  // Security check for Admin Hub
+  if (!currentUser || currentUser.role !== 'ADMIN') {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
+          <ShieldCheck className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-bold text-[#101828] font-heading">Admin Hub Restricted</h2>
+        <p className="text-xs text-[#667085] leading-relaxed">
+          Access to the institutional governance and verification console is restricted to verified PharmNexia administrators.
+        </p>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <button
+            onClick={() => onNavigate('/')}
+            className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
+          >
+            Return Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard' | 'mentors' | 'applications' | 'certificates' | 'social' | 'audit' | 'bookings'
   const [copiedPostId, setCopiedPostId] = useState(null);
 

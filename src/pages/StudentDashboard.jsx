@@ -38,15 +38,44 @@ export const StudentDashboard = ({ onNavigate }) => {
     cancelBooking
   } = useApp();
 
+  // Redirect / prompt if not signed in
+  if (!currentUser) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center mx-auto">
+          <LayoutDashboard className="w-7 h-7" />
+        </div>
+        <h2 className="text-xl font-bold text-[#101828] font-heading">Sign In Required</h2>
+        <p className="text-xs text-[#667085] leading-relaxed">
+          Please sign in or create an account to view your scheduled mentorships, enrolled programs, certificates, and student dashboard.
+        </p>
+        <div className="pt-2 flex items-center justify-center gap-3">
+          <button
+            onClick={() => onNavigate('/auth?mode=login')}
+            className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => onNavigate('/auth?mode=signup')}
+            className="px-5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#00A86B] text-[#111827] text-xs font-semibold transition"
+          >
+            Register Free
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'mentorships' | 'programs' | 'certificates' | 'applications' | 'saved' | 'profile'
   const [activeVideoRoomBooking, setActiveVideoRoomBooking] = useState(null);
   const [selectedCertForView, setSelectedCertForView] = useState(null);
 
-  // Edit Profile Form state
+  // Edit Profile Form state (Clean - uses real logged in user)
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profCollege, setProfCollege] = useState(currentUser?.college || "Bombay College of Pharmacy");
+  const [profCollege, setProfCollege] = useState(currentUser?.college || "");
   const [profDegree, setProfDegree] = useState(currentUser?.degree || "B.Pharm");
-  const [profYear, setProfYear] = useState(currentUser?.year || "3rd Year");
+  const [profYear, setProfYear] = useState(currentUser?.year || "1st Year");
   const [profBio, setProfBio] = useState(currentUser?.bio || "");
 
   const handleSaveProfile = (e) => {
@@ -63,7 +92,9 @@ export const StudentDashboard = ({ onNavigate }) => {
   // Find enrolled programs objects
   const enrolledProgsList = programs.filter(p => enrolledProgramIds.includes(p.id));
   const savedOppsList = opportunities.filter(o => savedOpportunityIds.includes(o.id));
-  const studentCertificates = certificates.filter(c => c.studentName.toLowerCase().includes((currentUser?.name || "Aarav").toLowerCase().split(' ')[0]));
+  const studentCertificates = certificates.filter(c => 
+    currentUser?.name && c.studentName.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0])
+  );
 
   const upcomingBooking = bookings.find(b => b.status === 'CONFIRMED');
 
@@ -72,7 +103,7 @@ export const StudentDashboard = ({ onNavigate }) => {
     { id: 'mentorships', label: 'My Mentorships', icon: Users, badge: bookings.length },
     { id: 'programs', label: 'My Programs', icon: BookOpen, badge: enrolledProgramIds.length },
     { id: 'certificates', label: 'My Certificates', icon: Award, badge: studentCertificates.length },
-    { id: 'applications', label: 'My Applications', icon: Briefcase, badge: '1 Active' },
+    { id: 'applications', label: 'My Applications', icon: Briefcase, badge: '0 Active' },
     { id: 'saved', label: 'Saved Opportunities', icon: Bookmark, badge: savedOpportunityIds.length },
     { id: 'profile', label: 'Student Profile', icon: User },
   ];

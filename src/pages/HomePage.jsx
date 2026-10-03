@@ -199,66 +199,94 @@ export const HomePage = ({ onNavigate }) => {
             </button>
           </div>
 
-          {/* 4 Minimal Mentor Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredMentors.map((mentor) => (
-              <div 
-                key={mentor.id}
-                className="p-6 rounded-xl bg-white border border-[#E5EAE7] hover:border-[#00A86B] transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="relative mb-4 w-16 h-16">
-                    <img 
-                      src={mentor.avatarUrl} 
-                      alt={mentor.name} 
-                      className="w-16 h-16 rounded-xl object-cover border border-[#E5EAE7]"
-                    />
-                    {mentor.verifiedBadge && (
-                      <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#00A86B] text-white" title="Verified Practitioner">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                  </div>
+          {/* 4 Minimal Mentor Cards OR Invitation Callout */}
+          {featuredMentors.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredMentors.map((mentor) => (
+                <div 
+                  key={mentor.id}
+                  className="p-6 rounded-xl bg-white border border-[#E5EAE7] hover:border-[#00A86B] transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="relative mb-4 w-16 h-16">
+                      <img 
+                        src={mentor.avatarUrl} 
+                        alt={mentor.name} 
+                        className="w-16 h-16 rounded-xl object-cover border border-[#E5EAE7]"
+                      />
+                      {mentor.verifiedBadge && (
+                        <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#00A86B] text-white" title="Verified Practitioner">
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
 
-                  <h3 className="text-base font-bold text-[#111111] font-heading">
-                    {mentor.name}
-                  </h3>
+                    <h3 className="text-base font-bold text-[#111111] font-heading">
+                      {mentor.name}
+                    </h3>
 
-                  <div className="text-xs font-medium text-[#00A86B] mt-0.5">
-                    {mentor.qualification}
-                  </div>
+                    <div className="text-xs font-medium text-[#00A86B] mt-0.5">
+                      {mentor.qualification}
+                    </div>
 
-                  <p className="text-xs text-[#5F6663] mt-1 leading-snug line-clamp-1">
-                    {mentor.currentRole} • {mentor.currentOrg}
-                  </p>
-
-                  <div className="mt-3 pt-3 border-t border-[#E5EAE7] text-xs text-[#5F6663]">
-                    <span className="text-[11px] font-medium text-[#111111] block mb-1">Focus Areas:</span>
-                    <p className="line-clamp-2 leading-relaxed">
-                      {mentor.whatICanHelpWith?.[0] || mentor.about}
+                    <p className="text-xs text-[#5F6663] mt-1 leading-snug line-clamp-1">
+                      {mentor.currentRole} • {mentor.currentOrg}
                     </p>
-                  </div>
-                </div>
 
-                <div className="pt-4 mt-4 border-t border-[#E5EAE7] flex items-center justify-between">
-                  <div className="text-xs">
-                    <span className="text-[#5F6663]">Fee: </span>
-                    <span className="font-semibold text-[#111111]">
-                      {mentor.price30 === 0 ? 'Free' : `₹${mentor.price30}`}
-                    </span>
+                    <div className="mt-3 pt-3 border-t border-[#E5EAE7] text-xs text-[#5F6663]">
+                      <span className="text-[11px] font-medium text-[#111111] block mb-1">Focus Areas:</span>
+                      <p className="line-clamp-2 leading-relaxed">
+                        {mentor.whatICanHelpWith?.[0] || mentor.about}
+                      </p>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => onNavigate(`/mentors/${mentor.id}`)}
-                    className="text-xs font-semibold text-[#00A86B] hover:text-[#087A52] flex items-center gap-1 transition-colors"
-                  >
-                    <span>View Profile</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  <div className="pt-4 mt-4 border-t border-[#E5EAE7] flex items-center justify-between">
+                    <div className="text-xs">
+                      <span className="text-[#5F6663]">Fee: </span>
+                      <span className="font-semibold text-[#111111]">
+                        {mentor.price30 === 0 ? 'Free' : `₹${mentor.price30}`}
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => onNavigate(`/mentors/${mentor.id}`)}
+                      className="text-xs font-semibold text-[#00A86B] hover:text-[#087A52] flex items-center gap-1 transition-colors"
+                    >
+                      <span>View Profile</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 sm:p-12 rounded-2xl bg-white border border-[#E5EAE7] text-center max-w-2xl mx-auto space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center mx-auto">
+                <ShieldCheck className="w-6 h-6" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-lg font-bold text-[#111111] font-heading">
+                Verified Mentor Directory Launching
+              </h3>
+              <p className="text-xs text-[#5F6663] leading-relaxed">
+                Connect directly with verified pharmacists, clinical scientists, and alumni who have walked your target path. Are you a pharmacy practitioner, researcher, or faculty member?
+              </p>
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => onNavigate('/mentors')}
+                  className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
+                >
+                  Apply as a Verified Mentor
+                </button>
+                <button
+                  onClick={() => onNavigate('/career-paths')}
+                  className="px-5 py-2.5 rounded-xl bg-white border border-[#E5EAE7] hover:border-[#00A86B] text-[#111111] text-xs font-semibold transition"
+                >
+                  Explore Career Paths
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

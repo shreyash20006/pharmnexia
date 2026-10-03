@@ -41,11 +41,11 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
 
   const [studentName, setStudentName] = useState(currentUser?.name || "");
   const [studentEmail, setStudentEmail] = useState(currentUser?.email || "");
-  const [studentCollege, setStudentCollege] = useState(currentUser?.college || "Pharmacy Institute");
+  const [studentCollege, setStudentCollege] = useState(currentUser?.college || "");
   const [agendaNotes, setAgendaNotes] = useState("");
   
   const [paymentMethod, setPaymentMethod] = useState("UPI"); // 'UPI' | 'CARD' | 'NETBANKING'
-  const [upiId, setUpiId] = useState("student@oksbi");
+  const [upiId, setUpiId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
@@ -63,9 +63,9 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
         notes: agendaNotes,
         paymentAmount: price,
         studentInfo: {
-          name: studentName || "Student Aspirant",
-          email: studentEmail || "student@pharmnexia.in",
-          college: studentCollege
+          name: studentName || currentUser?.name || "Student Aspirant",
+          email: studentEmail || currentUser?.email || "",
+          college: studentCollege || currentUser?.college || ""
         }
       });
 
@@ -374,7 +374,8 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
                       type="text" 
                       value={upiId}
                       onChange={(e) => setUpiId(e.target.value)}
-                      className="w-full text-xs p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                      placeholder="e.g. yourname@okhdfcbank or 9876543210@upi"
+                      className="w-full text-xs p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white placeholder-[#9CA3AF]"
                     />
                   </div>
                 )}
