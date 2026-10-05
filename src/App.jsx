@@ -11,6 +11,10 @@ import { CareerPathsPage } from './pages/CareerPathsPage';
 import { CareerPathDetailPage } from './pages/CareerPathDetailPage';
 import { MentorsPage } from './pages/MentorsPage';
 import { MentorProfilePage } from './pages/MentorProfilePage';
+import { BecomeMentorPage } from './pages/BecomeMentorPage';
+import { MentorOnboardingPage } from './pages/MentorOnboardingPage';
+import { ContactPage } from './pages/ContactPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { ProgramsPage } from './pages/ProgramsPage';
 import { ProgramDetailPage } from './pages/ProgramDetailPage';
 import { OpportunitiesPage } from './pages/OpportunitiesPage';
@@ -45,10 +49,34 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  useEffect(() => {
+    if (currentPath === '/login') {
+      setAuthModalMode('login');
+      setAuthModalOpen(true);
+    }
+
+    if (currentPath === '/register') {
+      setAuthModalMode('signup');
+      setAuthModalOpen(true);
+    }
+  }, [currentPath]);
+
   const navigate = (path) => {
     if (path.startsWith('/auth')) {
       const mode = path.includes('signup') ? 'signup' : 'login';
       setAuthModalMode(mode);
+      setAuthModalOpen(true);
+      return;
+    }
+
+    if (path === '/login') {
+      setAuthModalMode('login');
+      setAuthModalOpen(true);
+      return;
+    }
+
+    if (path === '/register') {
+      setAuthModalMode('signup');
       setAuthModalOpen(true);
       return;
     }
@@ -83,7 +111,15 @@ function AppContent() {
       return <MentorProfilePage mentorId={mentorId} onNavigate={navigate} />;
     }
 
-    // 4. Programs & Detail
+    // 4. Become a mentor / onboarding
+    if (currentPath === '/become-a-mentor') {
+      return <BecomeMentorPage onNavigate={navigate} />;
+    }
+    if (currentPath === '/mentor/onboarding') {
+      return <MentorOnboardingPage onNavigate={navigate} />;
+    }
+
+    // 5. Programs & Detail
     if (currentPath === '/programs') {
       return <ProgramsPage onNavigate={navigate} />;
     }
@@ -92,7 +128,7 @@ function AppContent() {
       return <ProgramDetailPage programId={programId} onNavigate={navigate} />;
     }
 
-    // 5. Opportunities & Detail
+    // 6. Opportunities & Detail
     if (currentPath === '/opportunities') {
       return <OpportunitiesPage onNavigate={navigate} />;
     }
@@ -101,7 +137,7 @@ function AppContent() {
       return <OpportunityDetailPage opportunityId={oppId} onNavigate={navigate} />;
     }
 
-    // 6. Resources & AI Medical Writing Interactive Guide
+    // 7. Resources & AI Medical Writing Interactive Guide
     if (currentPath === '/resources/ai-medical-writing') {
       return <AiMedicalWritingPage onNavigate={navigate} />;
     }
@@ -109,24 +145,30 @@ function AppContent() {
       return <ResourcesPage onNavigate={navigate} />;
     }
 
-    // 7. Verify Certificate
+    // 8. Verify Certificate
     if (currentPath.startsWith('/verify-certificate')) {
       const parts = currentPath.split('/verify-certificate/');
       const certId = parts.length > 1 ? parts[1] : '';
       return <VerifyCertificatePage initialCertId={certId} onNavigate={navigate} />;
     }
 
-    // 8. Student Dashboard
+    // 9. Student / profile pages
+    if (currentPath === '/profile') {
+      return <ProfilePage onNavigate={navigate} />;
+    }
     if (currentPath === '/dashboard') {
       return <StudentDashboard onNavigate={navigate} />;
     }
+    if (currentPath === '/contact') {
+      return <ContactPage onNavigate={navigate} />;
+    }
 
-    // 9. Admin Dashboard
+    // 10. Admin Dashboard
     if (currentPath === '/admin') {
       return <AdminDashboard onNavigate={navigate} />;
     }
 
-    // 10. Legal & Compliance Pages
+    // 11. Legal & Compliance Pages
     if (currentPath === '/privacy') {
       return <PrivacyPolicyPage onNavigate={navigate} />;
     }
@@ -149,24 +191,27 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#111111] font-sans selection:bg-[#00D084]/20 selection:text-[#087A52] antialiased">
-      {/* Global Navbar */}
       <Navbar currentPath={currentPath} onNavigate={navigate} />
 
-      {/* Main Page Content with smooth subtle route transition */}
       <main className="flex-1">
         <PageTransition key={currentPath}>
           {renderCurrentPage()}
         </PageTransition>
       </main>
 
-      {/* Global Footer */}
       <Footer onNavigate={navigate} />
 
-      {/* Authentication Modal */}
       <AuthModal 
         isOpen={authModalOpen}
         initialMode={authModalMode}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={() => {
+          setAuthModalOpen(false);
+          const current = window.location.pathname;
+          if (current === '/login' || current === '/register') {
+            window.history.pushState({}, '', '/');
+            setCurrentPath('/');
+          }
+        }}
         onSuccess={() => {
           setAuthModalOpen(false);
           navigate('/dashboard');
