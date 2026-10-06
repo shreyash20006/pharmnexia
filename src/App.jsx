@@ -15,6 +15,7 @@ import { MentorsPage } from './pages/MentorsPage';
 import { MentorProfilePage } from './pages/MentorProfilePage';
 import { ProgramsPage } from './pages/ProgramsPage';
 import { ProgramDetailPage } from './pages/ProgramDetailPage';
+import { ProgramAccessPage } from './pages/ProgramAccessPage';
 import { OpportunitiesPage } from './pages/OpportunitiesPage';
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage';
 import { ResourcesPage } from './pages/ResourcesPage';
@@ -114,9 +115,13 @@ function AppContent() {
       return <MentorsPage onNavigate={navigate} />;
     }
 
-    // 5. Programs & Detail
+    // 5. Programs, Detail & Verified Event Access
     if (currentPath === '/programs') {
       return <ProgramsPage onNavigate={navigate} />;
+    }
+    if (currentPath.startsWith('/programs/') && currentPath.endsWith('/access')) {
+      const programId = currentPath.replace('/programs/', '').replace('/access', '');
+      return <ProgramAccessPage programId={programId} onNavigate={navigate} />;
     }
     if (currentPath.startsWith('/programs/')) {
       const programId = currentPath.replace('/programs/', '');
@@ -140,11 +145,9 @@ function AppContent() {
       return <ResourcesPage onNavigate={navigate} />;
     }
 
-    // 8. Verify Certificate
+    // 8. Certificate verification (Disabled from public navigation; redirects home)
     if (currentPath.startsWith('/verify-certificate')) {
-      const parts = currentPath.split('/verify-certificate/');
-      const certId = parts.length > 1 ? parts[1] : '';
-      return <VerifyCertificatePage initialCertId={certId} onNavigate={navigate} />;
+      return <HomePage onNavigate={navigate} />;
     }
 
     // 9. Student / profile pages
@@ -159,7 +162,16 @@ function AppContent() {
       );
     }
 
-    // 10. Admin Dashboard
+    // 10. Admin Dashboard & CMS Subroutes
+    if (currentPath === '/admin/programs') {
+      return <AdminDashboard initialSection="programs" onNavigate={navigate} />;
+    }
+    if (currentPath === '/admin/analytics') {
+      return <AdminDashboard initialSection="analytics" onNavigate={navigate} />;
+    }
+    if (currentPath === '/admin/staff') {
+      return <AdminDashboard initialSection="staff" onNavigate={navigate} />;
+    }
     if (currentPath === '/admin') {
       return <AdminDashboard onNavigate={navigate} />;
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Shield, ArrowUpRight } from 'lucide-react';
+import { Shield, ArrowUpRight } from 'lucide-react';
 import { PharmNexiaLogo } from './PharmNexiaLogo';
 
 export const Footer = ({ onNavigate }) => {
@@ -22,16 +22,6 @@ export const Footer = ({ onNavigate }) => {
               India's dedicated pharmacy career and mentorship ecosystem. Connecting B.Pharm, D.Pharm, M.Pharm, and Pharm.D students with verified people who have already walked the path they want to take.
             </p>
 
-            {/* Verification Badge */}
-            <div className="pt-2 flex items-center gap-2">
-              <button 
-                onClick={() => onNavigate('/verify-certificate')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#F8FAF9] border border-[#E5EAE7] hover:border-[#00A86B] text-[13px] text-[#5F6663] hover:text-[#00A86B] transition-colors"
-              >
-                <Award className="w-3.5 h-3.5 text-[#00A86B]" />
-                <span>Certificate Verification</span>
-              </button>
-            </div>
           </div>
 
           {/* Navigation: Career Paths */}
@@ -138,11 +128,6 @@ export const Footer = ({ onNavigate }) => {
               <li>
                 <button onClick={() => onNavigate('/refund-policy')} className="hover:text-[#00A86B] transition-colors text-left">
                   Refund Policy
-                </button>
-              </li>
-              <li>
-                <button onClick={() => onNavigate('/verify-certificate')} className="hover:text-[#00A86B] transition-colors text-left">
-                  Certificate Verification
                 </button>
               </li>
               <li>
