@@ -110,11 +110,8 @@ function AppContent() {
     }
 
     // 4. Become a mentor / onboarding
-    if (currentPath === '/become-a-mentor') {
-      return <BecomeMentorPage onNavigate={navigate} />;
-    }
-    if (currentPath === '/mentor/onboarding') {
-      return <MentorOnboardingPage onNavigate={navigate} />;
+    if (currentPath === '/become-a-mentor' || currentPath === '/mentor/onboarding') {
+      return <MentorsPage onNavigate={navigate} />;
     }
 
     // 5. Programs & Detail
