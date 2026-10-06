@@ -1448,11 +1448,17 @@ Reserve your free seat here: https://pharmnexia.in/programs`
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: 12-STEP PROGRAM / EVENT CMS BUILDER                                */}
+      {/* MODAL: 12-STEP PROGRAM / EVENT CMS BUILDER (Large System Modal)          */}
       {/* ========================================================================= */}
       {showProgramModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 border border-[#E5E7EB] shadow-2xl animate-fadeIn text-[#111827] max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setShowProgramModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[860px] w-full p-6 sm:p-8 space-y-6 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop text-[#111827] max-h-[85vh] overflow-y-auto relative my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-4">
@@ -1948,11 +1954,17 @@ Reserve your free seat here: https://pharmnexia.in/programs`
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: INVITE STAFF MEMBER                                                */}
+      {/* MODAL: INVITE STAFF MEMBER (Small System Modal)                           */}
       {/* ========================================================================= */}
       {showInviteStaffModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-[#E5E7EB] shadow-2xl animate-fadeIn text-[#111827]">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setShowInviteStaffModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[440px] w-full p-6 sm:p-7 space-y-4 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop text-[#111827] relative my-auto max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-base font-bold text-[#101828] font-heading">Invite Institutional Staff Member</h3>
             <p className="text-xs text-[#667085]">
               Invited staff will receive access without password exposure. Assign appropriate governance tier.
@@ -2041,11 +2053,17 @@ Reserve your free seat here: https://pharmnexia.in/programs`
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: ISSUE CERTIFICATE                                                  */}
+      {/* MODAL: ISSUE CERTIFICATE (Small System Modal)                             */}
       {/* ========================================================================= */}
       {showIssueCertModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-[#E5E7EB] shadow-2xl animate-fadeIn text-[#111827]">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setShowIssueCertModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[440px] w-full p-6 sm:p-7 space-y-4 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop text-[#111827] relative my-auto max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-base font-bold text-[#101828] font-heading">Generate Official Verifiable Certificate</h3>
             
             <form onSubmit={handleIssueNewCert} className="space-y-3 text-xs">

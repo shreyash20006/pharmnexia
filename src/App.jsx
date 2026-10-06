@@ -127,7 +127,7 @@ function AppContent() {
 
     // 4. Become a mentor / onboarding
     if (currentPath === '/become-a-mentor' || currentPath === '/mentor/onboarding') {
-      return <MentorsPage onNavigate={navigate} />;
+      return <MentorsPage onNavigate={navigate} initialApplyOpen={true} />;
     }
 
     // 5. Programs, Detail & Verified Event Access
@@ -165,8 +165,12 @@ function AppContent() {
       return <HomePage onNavigate={navigate} />;
     }
 
-    // 9. Student / profile pages
+    // 9. Student / profile / dashboard pages (Role-Driven Navigation)
     if (currentPath === '/profile' || currentPath === '/dashboard') {
+      const role = (currentUser?.staffRole || currentUser?.role || 'STUDENT').toUpperCase();
+      if (['ADMIN', 'SUPER_ADMIN', 'DEVELOPER', 'MENTOR_MANAGER', 'CONTENT_MANAGER', 'SUPPORT', 'ANALYST'].includes(role)) {
+        return <AdminDashboard onNavigate={navigate} />;
+      }
       return <StudentDashboard onNavigate={navigate} />;
     }
     if (currentPath === '/contact') {

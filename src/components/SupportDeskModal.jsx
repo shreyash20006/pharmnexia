@@ -188,11 +188,15 @@ export const SupportDeskModal = ({ onOpenAuth }) => {
           2. SUPPORT DESK MODAL / FLYOUT
           ==================================================================== */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-[#101828]/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+        <div 
+          className="fixed inset-0 z-50 overflow-hidden bg-[#0F172A]/35 backdrop-blur-[4px] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setIsOpen(false)}
+        >
           <div 
-            className="bg-white w-full sm:max-w-lg md:max-w-xl rounded-t-3xl sm:rounded-2xl shadow-2xl border border-[#E5E7EB] flex flex-col h-[90vh] sm:h-[650px] max-h-[720px] overflow-hidden text-[#111827]"
+            className="bg-white w-full sm:max-w-lg md:max-w-[580px] rounded-t-3xl sm:rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-[#E5E7EB] flex flex-col h-[90vh] sm:h-[650px] max-h-[720px] overflow-hidden text-[#111827] animate-modal-pop"
             role="dialog"
             aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* ----------------- MODAL HEADER ----------------- */}
             <div className="bg-[#101828] text-white px-5 py-4 flex items-center justify-between border-b border-white/10 flex-shrink-0">

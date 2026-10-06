@@ -210,10 +210,16 @@ export const ResourcesPage = ({ onNavigate }) => {
         ))}
       </div>
 
-      {/* Interactive Resource Reader Preview Modal */}
+      {/* Interactive Resource Reader Preview Modal (Medium System Modal) */}
       {previewResource && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 border border-[#E5E7EB] shadow-2xl animate-fadeIn text-[#111827]">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setPreviewResource(null)}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[640px] w-full p-6 sm:p-7 space-y-4 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop text-[#111827] relative my-auto max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between pb-3 border-b border-[#E5E7EB]">
               <div>
                 <span className="text-xs font-mono uppercase text-[#087A52] font-bold">{previewResource.category}</span>

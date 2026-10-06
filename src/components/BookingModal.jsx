@@ -83,8 +83,16 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-[#E5E7EB] overflow-hidden animate-fadeIn text-[#111827]">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && onClose) onClose();
+      }}
+    >
+      <div 
+        className="bg-white rounded-[20px] max-w-[620px] w-full shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-[#E5E7EB] overflow-hidden animate-modal-pop text-[#111827] relative my-auto max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
         <div className="bg-[#F8FAF9] p-5 flex items-center justify-between border-b border-[#E5E7EB]">

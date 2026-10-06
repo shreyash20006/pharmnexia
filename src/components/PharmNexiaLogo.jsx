@@ -25,61 +25,61 @@ export const PharmNexiaLogo = ({
   const pharmTextColor = isDark ? '#FFFFFF' : '#101828';
   const taglineTextColor = isDark ? '#E5E7EB' : '#475467';
 
-  // Sizing dimensions with full ratio preservation
+  // Sizing dimensions with full ratio preservation and balanced wordmark
   const sizeConfig = {
     navbar: {
-      iconClasses: 'w-[39px] h-[39px] min-[360px]:w-[42px] min-[360px]:h-[42px] lg:w-[44px] lg:h-[44px]',
-      fontSize: 'text-[22px] min-[360px]:text-[26px] min-[390px]:text-[28px] sm:text-[29px] lg:text-[33px] xl:text-[35px]',
-      gap: 'gap-2 min-[360px]:gap-2.5 lg:gap-3',
-      leafClasses: 'w-2.5 h-1.5 min-[360px]:w-3 min-[360px]:h-2 sm:w-3.5 sm:h-2 lg:w-4 lg:h-2.5 ml-[-5px] min-[360px]:ml-[-6px] sm:ml-[-7px] lg:ml-[-8px] mb-3.5 min-[360px]:mb-4.5 sm:mb-5 lg:mb-6',
-      taglineSize: 'text-[9px]',
-      lineWidth: 'w-10',
-      containerHeight: 'h-[42px] sm:h-[44px] lg:h-[46px]'
+      iconClasses: 'w-[34px] h-[34px] sm:w-[36px] sm:h-[36px] lg:w-[38px] lg:h-[38px]',
+      fontSize: 'text-[21px] sm:text-[23px] lg:text-[25px]',
+      gap: 'gap-2 sm:gap-2.5',
+      leafClasses: 'w-2.5 h-1.5 ml-[-5px] mb-3 sm:mb-3.5',
+      taglineSize: 'text-[8.5px]',
+      lineWidth: 'w-8',
+      containerHeight: 'h-[36px] sm:h-[38px] lg:h-[40px]'
     },
     sm: {
-      iconClasses: 'w-[39px] h-[39px] min-[360px]:w-[42px] min-[360px]:h-[42px] lg:w-[44px] lg:h-[44px]',
-      fontSize: 'text-[22px] min-[360px]:text-[26px] min-[390px]:text-[28px] sm:text-[29px] lg:text-[33px] xl:text-[35px]',
-      gap: 'gap-2 min-[360px]:gap-2.5 lg:gap-3',
-      leafClasses: 'w-2.5 h-1.5 min-[360px]:w-3 min-[360px]:h-2 sm:w-3.5 sm:h-2 lg:w-4 lg:h-2.5 ml-[-5px] min-[360px]:ml-[-6px] sm:ml-[-7px] lg:ml-[-8px] mb-3.5 min-[360px]:mb-4.5 sm:mb-5 lg:mb-6',
-      taglineSize: 'text-[9px]',
-      lineWidth: 'w-10',
-      containerHeight: 'h-[42px] sm:h-[44px] lg:h-[46px]'
+      iconClasses: 'w-[30px] h-[30px] sm:w-[32px] sm:h-[32px]',
+      fontSize: 'text-[18px] sm:text-[20px]',
+      gap: 'gap-2',
+      leafClasses: 'w-2 h-1 ml-[-4px] mb-2.5',
+      taglineSize: 'text-[8px]',
+      lineWidth: 'w-8',
+      containerHeight: 'h-[32px] sm:h-[34px]'
     },
     md: {
-      iconClasses: 'w-[46px] h-[46px]',
-      fontSize: 'text-2xl sm:text-3xl',
-      gap: 'gap-3',
-      leafClasses: 'w-3.5 h-2 ml-[-7px] mb-5',
-      taglineSize: 'text-[10px]',
-      lineWidth: 'w-16',
+      iconClasses: 'w-[40px] h-[40px]',
+      fontSize: 'text-xl sm:text-2xl',
+      gap: 'gap-2.5',
+      leafClasses: 'w-3 h-1.5 ml-[-6px] mb-4',
+      taglineSize: 'text-[9.5px]',
+      lineWidth: 'w-12',
       containerHeight: 'h-auto'
     },
     lg: {
-      iconClasses: 'w-[64px] h-[64px]',
-      fontSize: 'text-4xl sm:text-5xl',
-      gap: 'gap-4',
-      leafClasses: 'w-4.5 h-2.5 ml-[-9px] mb-7',
+      iconClasses: 'w-[52px] h-[52px]',
+      fontSize: 'text-3xl sm:text-4xl',
+      gap: 'gap-3.5',
+      leafClasses: 'w-3.5 h-2 ml-[-7px] mb-5',
       taglineSize: 'text-xs',
-      lineWidth: 'w-24',
+      lineWidth: 'w-20',
       containerHeight: 'h-auto'
     },
     hero: {
-      iconClasses: 'w-[96px] h-[96px]',
-      fontSize: 'text-5xl sm:text-7xl lg:text-8xl',
-      gap: 'gap-5',
-      leafClasses: 'w-7 h-4 ml-[-14px] mb-12',
+      iconClasses: 'w-[72px] h-[72px] sm:w-[84px] sm:h-[84px]',
+      fontSize: 'text-4xl sm:text-6xl',
+      gap: 'gap-4 sm:gap-5',
+      leafClasses: 'w-5 h-3 ml-[-10px] mb-8 sm:mb-10',
       taglineSize: 'text-xs sm:text-sm',
       lineWidth: 'w-24 sm:w-36',
       containerHeight: 'h-auto'
     }
   }[size] || {
-    iconClasses: 'w-[42px] h-[42px]',
-    fontSize: 'text-[26px] sm:text-[29px] lg:text-[34px]',
-    gap: 'gap-2.5 lg:gap-3',
-    leafClasses: 'w-3 h-2 ml-[-6px] mb-4.5',
-    taglineSize: 'text-[10px]',
-    lineWidth: 'w-16',
-    containerHeight: 'h-[44px]'
+    iconClasses: 'w-[36px] h-[36px]',
+    fontSize: 'text-[22px]',
+    gap: 'gap-2.5',
+    leafClasses: 'w-2.5 h-1.5 ml-[-5px] mb-3',
+    taglineSize: 'text-[9px]',
+    lineWidth: 'w-10',
+    containerHeight: 'h-[38px]'
   };
 
   return (

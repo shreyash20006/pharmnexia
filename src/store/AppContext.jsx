@@ -167,6 +167,53 @@ export const AppProvider = ({ children }) => {
     };
   };
 
+  // Helper to resolve elevated roles from Supabase database (staff_accounts & profiles)
+  const resolveUserWithDbRole = async (user) => {
+    const base = mapSupabaseUser(user);
+    if (!supabase || !isSupabaseConfigured || !user?.email) return base;
+
+    try {
+      // 1. Check if user is registered in staff_accounts
+      const { data: staff, error: staffErr } = await supabase
+        .from('staff_accounts')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (!staffErr && staff && staff.status === 'ACTIVE') {
+        return {
+          ...base,
+          role: staff.role,
+          staffRole: staff.role,
+          title: staff.title || base.title,
+          department: staff.department
+        };
+      }
+
+      // 2. Check if user has an elevated role in profiles
+      const { data: profile, error: profErr } = await supabase
+        .from('profiles')
+        .select('role, full_name, avatar_url, bio')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profErr && profile && profile.role && profile.role !== 'STUDENT') {
+        return {
+          ...base,
+          role: profile.role,
+          staffRole: profile.role,
+          name: profile.full_name || base.name,
+          avatar: profile.avatar_url || base.avatar,
+          bio: profile.bio || base.bio
+        };
+      }
+    } catch (err) {
+      console.warn('[PharmNexia DB] User role resolution notice:', err);
+    }
+
+    return base;
+  };
+
   // Sync Supabase Auth & Real DB Mentors
   useEffect(() => {
     if (!supabase) {
@@ -175,9 +222,9 @@ export const AppProvider = ({ children }) => {
     }
 
     // A. Check active Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const appUser = mapSupabaseUser(session.user);
+        const appUser = await resolveUserWithDbRole(session.user);
         setCurrentUser(appUser);
       }
       setAuthLoading(false);
@@ -187,9 +234,9 @@ export const AppProvider = ({ children }) => {
     });
 
     // B. Subscribe to Auth state changes (Google OAuth redirect, Login, Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const appUser = mapSupabaseUser(session.user);
+        const appUser = await resolveUserWithDbRole(session.user);
         setCurrentUser(appUser);
       } else {
         setCurrentUser(null);
@@ -207,7 +254,7 @@ export const AppProvider = ({ children }) => {
             *,
             profiles:user_id(full_name, email, avatar_url)
           `)
-          .eq('verification_status', 'VERIFIED');
+          .in('verification_status', ['VERIFIED', 'DEMO', 'PENDING']);
 
         if (!error && data && data.length > 0) {
           const mapped = data.map(m => ({
@@ -458,6 +505,23 @@ export const AppProvider = ({ children }) => {
     };
 
     setBookings(prev => [newBooking, ...prev]);
+
+    // Persist to Supabase database if configured
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('bookings').insert({
+        booking_code: newBookingId,
+        student_id: currentUser?.id,
+        mentor_id: mentor?.id,
+        session_duration_min: Number(sessionDuration),
+        scheduled_date: scheduledDate,
+        scheduled_time: scheduledTime,
+        status: 'CONFIRMED',
+        student_notes: notes,
+        meeting_link: newBooking.meetingLink
+      }).then(({ error }) => {
+        if (error) console.warn('[PharmNexia DB] Booking insert notice:', error);
+      });
+    }
 
     addNotification({
       title: "Booking Confirmed!",
@@ -911,6 +975,24 @@ export const AppProvider = ({ children }) => {
     };
 
     setProgramRegistrations(prev => [newReg, ...prev]);
+
+    // Persist to Supabase database if configured
+    if (supabase && isSupabaseConfigured) {
+      supabase.from('program_registrations').insert({
+        registration_code: ticketCode,
+        program_id: prog?.id,
+        student_id: currentUser?.id,
+        student_name: studentName,
+        student_email: studentEmail,
+        payment_status: prog?.isFree ? 'FREE' : 'PAID',
+        payment_amount: prog?.isFree ? 0 : (prog?.price || 0),
+        payment_id: newReg.paymentId,
+        currency: prog?.currency || 'INR',
+        google_meet_url: meetUrl
+      }).then(({ error }) => {
+        if (error) console.warn('[PharmNexia DB] Program registration insert notice:', error);
+      });
+    }
 
     if (!enrolledProgramIds.includes(programId)) {
       setEnrolledProgramIds(prev => [...prev, programId]);

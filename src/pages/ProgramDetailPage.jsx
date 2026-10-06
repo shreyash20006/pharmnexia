@@ -391,10 +391,16 @@ export const ProgramDetailPage = ({ programId, onNavigate }) => {
 
       </div>
 
-      {/* Success Modal */}
+      {/* Success Modal (System SMALL Modal) */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 text-center space-y-4 border border-[#E5E7EB] shadow-2xl animate-fadeIn text-[#111827]">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setShowSuccessModal(false)}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[420px] w-full p-6 sm:p-7 text-center space-y-4 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop text-[#111827] relative my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-14 h-14 rounded-full bg-[#E8F8F1] text-[#087A52] flex items-center justify-center mx-auto border border-[#00A86B]/20">
               <CheckCircle2 className="w-8 h-8 text-[#00A86B]" />
             </div>

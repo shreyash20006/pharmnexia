@@ -278,10 +278,19 @@ export const MentorCalendarManager = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Modal: Create Event inside PharmNexia with Google Meet */}
+      {/* Modal: Create Event inside PharmNexia with Google Meet (Medium System Modal) */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 border border-[#E5E7EB] shadow-2xl animate-fadeIn text-[#111827]">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => {
+            setShowCreateModal(false);
+            setCreatedMeetUrl(null);
+          }}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[580px] w-full p-6 sm:p-7 space-y-4 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop text-[#111827] relative my-auto max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
               <div>
                 <h3 className="text-base font-bold text-[#101828] font-heading">Create Event & Generate Google Meet</h3>

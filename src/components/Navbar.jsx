@@ -206,7 +206,15 @@ export const Navbar = ({ currentPath, onNavigate }) => {
                       className="w-full text-left px-3 py-2 rounded-xl text-[#111827] hover:bg-[#F8FAF9] hover:text-[#00A86B] flex items-center gap-2 transition-colors font-medium"
                     >
                       <LayoutDashboard className="w-4 h-4 text-[#00A86B]" />
-                      <span>{currentUser.role === 'ADMIN' ? 'Admin Hub' : 'My Dashboard'}</span>
+                      <span>
+                        {currentUser.role === 'DEVELOPER'
+                          ? 'Developer Hub'
+                          : ['ADMIN', 'SUPER_ADMIN'].includes(currentUser.role)
+                            ? 'Admin Hub'
+                            : ['MENTOR_MANAGER', 'CONTENT_MANAGER', 'SUPPORT', 'ANALYST'].includes(currentUser.role || currentUser.staffRole)
+                              ? 'Staff Console'
+                              : 'My Dashboard'}
+                      </span>
                     </button>
 
                     <button 

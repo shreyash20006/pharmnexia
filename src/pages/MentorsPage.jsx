@@ -17,9 +17,10 @@ import {
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { BookingModal } from '../components/BookingModal';
+import { MentorApplicationModal } from '../components/MentorApplicationModal';
 import { ScrollReveal, FadeUp, FadeLeft, FadeRight } from '../components/Animation';
 
-export const MentorsPage = ({ onNavigate }) => {
+export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
   const { mentors, addMentor, currentUser } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,19 +31,13 @@ export const MentorsPage = ({ onNavigate }) => {
   const [selectedMentorForBooking, setSelectedMentorForBooking] = useState(null);
 
   // Apply as Mentor Modal State
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
-  const [applySubmitted, setApplySubmitted] = useState(false);
-  const [applyForm, setApplyForm] = useState({
-    name: currentUser?.name || '',
-    email: currentUser?.email || '',
-    currentRole: '',
-    currentOrg: '',
-    qualification: 'B.Pharm, M.Pharm',
-    mentorType: 'Industry',
-    price30: 0,
-    about: '',
-    expertise: 'Pharmacovigilance, Regulatory Affairs'
-  });
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(initialApplyOpen);
+
+  useEffect(() => {
+    if (initialApplyOpen) {
+      setIsApplyModalOpen(true);
+    }
+  }, [initialApplyOpen]);
 
   const mentorTypes = ["ALL", "Faculty", "Alumni", "Industry", "Researchers", "Exam/Entrance Mentors"];
   const priceModels = ["ALL", "Free / Volunteer", "Paid / Honorarium"];
@@ -71,29 +66,6 @@ export const MentorsPage = ({ onNavigate }) => {
     if (sortBy === "priceAsc") return a.price30 - b.price30;
     return 0;
   });
-
-  const handleApplySubmit = (e) => {
-    e.preventDefault();
-    addMentor({
-      name: applyForm.name,
-      email: applyForm.email,
-      currentRole: applyForm.currentRole,
-      currentOrg: applyForm.currentOrg,
-      qualification: applyForm.qualification,
-      mentorType: applyForm.mentorType,
-      price30: Number(applyForm.price30) || 0,
-      price60: (Number(applyForm.price30) || 0) * 1.8,
-      about: applyForm.about,
-      expertise: applyForm.expertise.split(',').map(s => s.trim()).filter(Boolean),
-      avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(applyForm.name)}`
-    });
-
-    setApplySubmitted(true);
-    setTimeout(() => {
-      setApplySubmitted(false);
-      setIsApplyModalOpen(false);
-    }, 2000);
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 bg-white text-[#111827]">
@@ -367,155 +339,14 @@ export const MentorsPage = ({ onNavigate }) => {
         />
       )}
 
-      {/* Apply as Mentor Modal */}
-      {isApplyModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-[#E5E7EB] overflow-hidden text-[#111827]">
-            <div className="bg-[#F8FAF9] p-5 flex items-center justify-between border-b border-[#E5E7EB]">
-              <div>
-                <h3 className="font-bold text-[#101828] text-base font-heading">Apply as a Verified Mentor</h3>
-                <p className="text-xs text-[#087A52] font-semibold">Join PharmNexia Practitioner Network</p>
-              </div>
-              <button 
-                onClick={() => setIsApplyModalOpen(false)}
-                className="p-1 rounded-lg text-[#667085] hover:text-[#111827] hover:bg-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {applySubmitted ? (
-              <div className="p-8 text-center space-y-3">
-                <CheckCircle2 className="w-12 h-12 text-[#00A86B] mx-auto" />
-                <h4 className="font-bold text-base text-[#101828]">Application Submitted!</h4>
-                <p className="text-xs text-[#667085]">
-                  Our Academic & Career Council will review your credentials. Thank you for contributing to the pharmacy student ecosystem.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleApplySubmit} className="p-6 space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#667085] mb-1">Full Name</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={applyForm.name}
-                      onChange={(e) => setApplyForm({...applyForm, name: e.target.value})}
-                      placeholder="e.g. Dr. Priya Nair"
-                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#667085] mb-1">Email</label>
-                    <input 
-                      type="email" 
-                      required
-                      value={applyForm.email}
-                      onChange={(e) => setApplyForm({...applyForm, email: e.target.value})}
-                      placeholder="name@organization.com"
-                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#667085] mb-1">Current Role / Designation</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={applyForm.currentRole}
-                      onChange={(e) => setApplyForm({...applyForm, currentRole: e.target.value})}
-                      placeholder="e.g. Senior PV Scientist"
-                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#667085] mb-1">Organization / College</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={applyForm.currentOrg}
-                      onChange={(e) => setApplyForm({...applyForm, currentOrg: e.target.value})}
-                      placeholder="e.g. Global CRO / Top Biopharma"
-                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#667085] mb-1">Qualification</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={applyForm.qualification}
-                      onChange={(e) => setApplyForm({...applyForm, qualification: e.target.value})}
-                      placeholder="e.g. B.Pharm, M.Pharm (NIPER)"
-                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#667085] mb-1">Mentor Type</label>
-                    <select
-                      value={applyForm.mentorType}
-                      onChange={(e) => setApplyForm({...applyForm, mentorType: e.target.value})}
-                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white text-xs"
-                    >
-                      <option value="Industry">Industry Professional</option>
-                      <option value="Faculty">Faculty / Professor</option>
-                      <option value="Alumni">Alumni</option>
-                      <option value="Researchers">PhD / Research Scholar</option>
-                      <option value="Exam/Entrance Mentors">Exam Topper (GPAT/CAT)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#667085] mb-1">Expertise Areas (comma separated)</label>
-                  <input 
-                    type="text" 
-                    value={applyForm.expertise}
-                    onChange={(e) => setApplyForm({...applyForm, expertise: e.target.value})}
-                    placeholder="e.g. Pharmacovigilance, Argus, Clinical Data Management"
-                    className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#667085] mb-1">Short Bio</label>
-                  <textarea 
-                    rows={3}
-                    value={applyForm.about}
-                    onChange={(e) => setApplyForm({...applyForm, about: e.target.value})}
-                    placeholder="Briefly describe your career journey and how you can guide students..."
-                    className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] focus:outline-none focus:border-[#00A86B] focus:bg-white resize-none"
-                  />
-                </div>
-
-                <div className="pt-2 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsApplyModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] text-xs font-semibold hover:bg-[#F8FAF9]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
-                  >
-                    Submit Application
-                  </button>
-                </div>
-              </form>
-            )}
-
-          </div>
-        </div>
-      )}
-
+      {/* Apply as Mentor Modal (Wide Landscape System Modal) */}
+      <MentorApplicationModal 
+        isOpen={isApplyModalOpen}
+        onClose={() => setIsApplyModalOpen(false)}
+        onSuccess={() => {
+          setIsApplyModalOpen(false);
+        }}
+      />
     </div>
   );
 };

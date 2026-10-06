@@ -722,10 +722,16 @@ export const StudentDashboard = ({ onNavigate }) => {
         </main>
       </div>
 
-      {/* Simulated Video Room Modal (Join Session) */}
+      {/* Simulated Video Room Modal (Join Session - Medium System Modal) */}
       {activeVideoRoomBooking && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white text-[#111827] rounded-3xl max-w-2xl w-full p-6 space-y-5 border border-[#E5E7EB] shadow-2xl animate-fadeIn">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setActiveVideoRoomBooking(null)}
+        >
+          <div 
+            className="bg-white text-[#111827] rounded-[20px] max-w-[620px] w-full p-6 sm:p-7 space-y-5 border border-[#E5E7EB] shadow-[0_20px_50px_rgba(0,0,0,0.12)] animate-modal-pop relative my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
               <div className="flex items-center gap-2.5">
                 <div className="w-3 h-3 rounded-full bg-[#00A86B] animate-ping" />
@@ -767,10 +773,16 @@ export const StudentDashboard = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Inspect Certificate Modal */}
+      {/* Inspect Certificate Modal (Large System Modal) */}
       {selectedCertForView && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#101828]/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 space-y-4 shadow-2xl relative border border-[#E5E7EB]">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/35 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={() => setSelectedCertForView(null)}
+        >
+          <div 
+            className="bg-white rounded-[20px] max-w-[860px] w-full p-6 sm:p-7 space-y-4 shadow-[0_20px_50px_rgba(0,0,0,0.12)] relative border border-[#E5E7EB] animate-modal-pop my-auto max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-2 border-b border-[#E5E7EB]">
               <span className="font-mono text-xs text-[#087A52] font-bold">Credential Viewer</span>
               <button onClick={() => setSelectedCertForView(null)} className="p-1 rounded-lg text-[#667085] hover:text-[#111827]">

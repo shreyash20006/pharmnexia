@@ -420,6 +420,64 @@ export const PROGRAMS = [
         a: "Yes! Every participant receives personalized bullet-point feedback on their resume draft."
       }
     ]
+  },
+  {
+    id: "prog-demo-pv-masterclass",
+    slug: "pharmacovigilance-career-masterclass-demo",
+    title: "Pharmacovigilance Career Masterclass (DEMO)",
+    shortTitle: "PV Career Masterclass (DEMO)",
+    category: "Pharmacovigilance",
+    type: "Masterclass",
+    status: "DEMO",
+    level: "Beginner",
+    mode: "Online via Google Meet",
+    duration: "1 Day (2 Hours Masterclass)",
+    schedule: "Saturday, 5:00 PM - 7:00 PM IST",
+    startDate: "2026-10-24",
+    endDate: "2026-10-24",
+    price: 0,
+    originalPrice: 499,
+    isFree: true,
+    currency: "INR",
+    ctaText: "Register Free (Demo)",
+    seatsTotal: 100,
+    seatsBooked: 24,
+    rating: 5.0,
+    reviewCount: 6,
+    googleMeetUrl: "https://meet.google.com/phn-pv-demo-test",
+    meetStatus: "UPCOMING",
+    meetStartTime: "5:00 PM IST",
+    certificateIncluded: true,
+    certificateType: "PharmNexia Verified Masterclass Credential (DEMO)",
+    leadMentor: "Dr. Priya Nair (DEMO)",
+    mentorRole: "Senior Pharmacovigilance Scientist",
+    organization: "Global Clinical Research",
+    skills: ["Pharmacovigilance", "Drug Safety", "ICSR Fundamentals", "Career Pathways"],
+    metaTitle: "Pharmacovigilance Career Masterclass (DEMO) | PharmNexia",
+    metaDescription: "Understanding career opportunities, skills and entry-level roles in pharmacovigilance with Dr. Priya Nair.",
+    overview: "Understanding career opportunities, skills and entry-level roles in pharmacovigilance. (TEST / DEMO EVENT)",
+    learningOutcomes: [
+      "Understand what a Drug Safety Associate and PV Scientist actually does daily",
+      "Key regulations: US FDA 21 CFR 314.80, EMA GVP, and ICH Guidelines",
+      "Resume tips and interview preparation for top CRO recruitment drives"
+    ],
+    curriculum: [
+      {
+        week: "Session 1",
+        title: "PV Career Roadmap & Industry Scope",
+        topics: [
+          "Overview of Drug Safety and Post-Marketing Surveillance",
+          "Qualifications required for entry-level PV positions",
+          "Q&A with Dr. Priya Nair (DEMO)"
+        ]
+      }
+    ],
+    faqs: [
+      {
+        q: "Is this masterclass free to attend?",
+        a: "Yes, this demo masterclass is completely free for testing."
+      }
+    ]
   }
 ];
 
