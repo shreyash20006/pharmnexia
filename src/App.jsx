@@ -13,10 +13,6 @@ import { CareerPathsPage } from './pages/CareerPathsPage';
 import { CareerPathDetailPage } from './pages/CareerPathDetailPage';
 import { MentorsPage } from './pages/MentorsPage';
 import { MentorProfilePage } from './pages/MentorProfilePage';
-import { BecomeMentorPage } from './pages/BecomeMentorPage';
-import { MentorOnboardingPage } from './pages/MentorOnboardingPage';
-import { ContactPage } from './pages/ContactPage';
-import { ProfilePage } from './pages/ProfilePage';
 import { ProgramsPage } from './pages/ProgramsPage';
 import { ProgramDetailPage } from './pages/ProgramDetailPage';
 import { OpportunitiesPage } from './pages/OpportunitiesPage';
@@ -155,14 +151,15 @@ function AppContent() {
     }
 
     // 9. Student / profile pages
-    if (currentPath === '/profile') {
-      return <ProfilePage onNavigate={navigate} />;
-    }
-    if (currentPath === '/dashboard') {
+    if (currentPath === '/profile' || currentPath === '/dashboard') {
       return <StudentDashboard onNavigate={navigate} />;
     }
     if (currentPath === '/contact') {
-      return <ContactPage onNavigate={navigate} />;
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <SupportDeskAdmin onNavigate={navigate} />
+        </div>
+      );
     }
 
     // 10. Admin Dashboard
