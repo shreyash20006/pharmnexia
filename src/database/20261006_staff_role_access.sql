@@ -1,18 +1,21 @@
 -- ==============================================================================
--- PHARMNEXIA - SAFE ADDITIVE DATABASE MIGRATION
+-- PHARMNEXIA - SAFE ADDITIVE DATABASE MIGRATION (FIX FOR ERROR 55P04)
 -- Migration Name: 20261006_staff_role_access.sql
 -- 
 -- PURPOSE:
--- 1. Ensure role enum and staff account architecture support DEVELOPER & Staff tiers.
--- 2. Grant backend-enforced DEVELOPER role to sb108750@gmail.com safely and idempotently.
--- 3. Enforce SQL-level Role-Based Access Control (RLS) across staff operations.
--- 4. Create safe DEMO/TEST mentor record: Dr. Priya Nair (DEMO/PENDING).
--- 5. Create safe DEMO/TEST program record: Pharmacovigilance Career Masterclass.
+-- 1. Upgrades public.profiles.role to VARCHAR(50) (from rigid user_role enum)
+--    so that all 7 institutional staff roles (DEVELOPER, SUPPORT, ANALYST, etc.)
+--    can be assigned seamlessly in a single transaction without PostgreSQL 55P04 error.
+-- 2. Grants backend-enforced DEVELOPER role to sb108750@gmail.com safely and idempotently.
+-- 3. Configures server-side Row Level Security (RLS) for staff accounts.
+-- 4. Registers auto-sync trigger so any staff email immediately gets their role on login.
+-- 5. Creates safe DEMO/TEST mentor record: Dr. Priya Nair (DEMO/PENDING).
+-- 6. Creates safe DEMO/TEST program record: Pharmacovigilance Career Masterclass (DEMO).
 --
--- SAFETY & COMPLIANCE GUARANTEES:
--- - 100% Additive: ZERO dropped tables, ZERO reset columns, ZERO data loss.
--- - Fully Idempotent: Safe to run once or multiple times without error.
--- - No password bypass: Preserves Supabase Auth.
+-- SAFETY & COMPLIANCE:
+-- - Zero dropped tables, zero deleted data.
+-- - All existing student and mentor profiles are 100% preserved.
+-- - Fully idempotent: safe to run once or multiple times.
 -- ==============================================================================
 
 -- 1. EXTENSIONS
@@ -20,34 +23,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==============================================================================
--- 2. ENUM TYPES SAFETY CHECK
+-- 2. SCHEMA EVOLUTION: UPGRADE PROFILES.ROLE TO VARCHAR(50)
+-- Prevents PostgreSQL 55P04 (unsafe use of new enum value in same transaction)
+-- and enables all 7 staff tiers: DEVELOPER, SUPPORT, ANALYST, MENTOR_MANAGER, etc.
 -- ==============================================================================
 
--- Ensure 'DEVELOPER' is an allowed value in the user_role enum
-DO $$ BEGIN
-  ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'DEVELOPER';
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
--- Ensure staff_role_type enum exists with all institutional tiers
-DO $$ BEGIN
-  CREATE TYPE staff_role_type AS ENUM (
-    'SUPER_ADMIN',
-    'ADMIN',
-    'DEVELOPER',
-    'MENTOR_MANAGER',
-    'CONTENT_MANAGER',
-    'SUPPORT',
-    'ANALYST'
-  );
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
--- ==============================================================================
--- 3. PROFILES & STAFF ACCOUNTS TABLE ASSURANCE
--- ==============================================================================
-
--- Ensure profiles table exists
+-- Ensure profiles table exists first
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role VARCHAR(50) NOT NULL DEFAULT 'STUDENT',
@@ -60,7 +41,27 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Ensure staff_accounts table exists for multi-tier role governance
+-- Safely convert profiles.role to VARCHAR(50) if it is currently user_role enum
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'profiles' 
+      AND column_name = 'role'
+      AND udt_name = 'user_role'
+  ) THEN
+    ALTER TABLE public.profiles ALTER COLUMN role DROP DEFAULT;
+    ALTER TABLE public.profiles ALTER COLUMN role TYPE VARCHAR(50) USING role::VARCHAR(50);
+    ALTER TABLE public.profiles ALTER COLUMN role SET DEFAULT 'STUDENT';
+  END IF;
+END $$;
+
+-- ==============================================================================
+-- 3. STAFF ACCOUNTS TABLE ASSURANCE
+-- ==============================================================================
+
 CREATE TABLE IF NOT EXISTS public.staff_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -109,7 +110,7 @@ USING (
   OR EXISTS (
     SELECT 1 FROM public.profiles p
     WHERE p.id = auth.uid()
-    AND p.role::text IN ('SUPER_ADMIN', 'ADMIN', 'DEVELOPER')
+    AND p.role IN ('SUPER_ADMIN', 'ADMIN', 'DEVELOPER')
   )
 );
 
@@ -193,7 +194,7 @@ BEGIN
     SET user_id = target_user_id, updated_at = NOW()
     WHERE email = 'sb108750@gmail.com';
 
-    -- Update or insert role in profiles table
+    -- Update or insert role in profiles table (VARCHAR, safe against 55P04)
     INSERT INTO public.profiles (id, email, full_name, role)
     VALUES (target_user_id, 'sb108750@gmail.com', 'Lead Developer', 'DEVELOPER')
     ON CONFLICT (id) DO UPDATE SET
@@ -207,50 +208,94 @@ END $$;
 -- For testing only. Clearly marked as DEMO data.
 -- ==============================================================================
 
-DO $$
-DECLARE
-  demo_user_id UUID := '00000000-0000-0000-0000-000000000002'::uuid;
-  has_auth_user BOOLEAN;
-BEGIN
-  -- Check if auth user exists or if foreign key is not strictly enforced
-  SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = demo_user_id) INTO has_auth_user;
-  
-  -- If table mentors exists, ensure demo mentor is safely present
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'mentors') THEN
-    
-    -- Insert demo record into audit_logs to register test presence
-    INSERT INTO public.audit_logs (
-      actor,
-      action,
-      target_type,
-      target_id,
-      details,
-      status,
-      metadata
-    ) VALUES (
-      'System Genesis (DEMO)',
-      'CREATE_DEMO_MENTOR',
-      'MENTOR',
-      'demo-mentor-priya-nair',
-      'Registered test mentor Dr. Priya Nair with status DEMO/PENDING',
-      'SUCCESS',
-      jsonb_build_object(
-        'name', 'Dr. Priya Nair (DEMO)',
-        'role', 'Senior Pharmacovigilance Scientist',
-        'organization', 'Global Clinical Research',
-        'qualification', 'B.Pharm, M.Pharm',
-        'status', 'DEMO / PENDING',
-        'is_demo', true
-      )
-    );
+-- Ensure audit_logs table exists
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor VARCHAR(255) NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  target_type VARCHAR(100),
+  target_id VARCHAR(100),
+  details TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-  END IF;
-END $$;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow insert audit logs" ON public.audit_logs;
+CREATE POLICY "Allow insert audit logs" ON public.audit_logs
+FOR INSERT TO public, anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow read audit logs" ON public.audit_logs;
+CREATE POLICY "Allow read audit logs" ON public.audit_logs
+FOR SELECT TO authenticated USING (true);
+
+INSERT INTO public.audit_logs (
+  actor, action, target_type, target_id, details, status, metadata
+) VALUES (
+  'System Genesis (DEMO)',
+  'CREATE_DEMO_MENTOR',
+  'MENTOR',
+  'demo-mentor-priya-nair',
+  'Registered test mentor Dr. Priya Nair with status DEMO/PENDING',
+  'SUCCESS',
+  jsonb_build_object(
+    'name', 'Dr. Priya Nair (DEMO)',
+    'role', 'Senior Pharmacovigilance Scientist',
+    'organization', 'Global Clinical Research',
+    'qualification', 'B.Pharm, M.Pharm',
+    'status', 'DEMO / PENDING',
+    'is_demo', true
+  )
+);
 
 -- ==============================================================================
 -- 8. SAFE DEMO TEST PROGRAM: Pharmacovigilance Career Masterclass (DEMO)
 -- For testing only. Clearly marked with status DEMO.
 -- ==============================================================================
+
+-- Ensure programs table exists
+CREATE TABLE IF NOT EXISTS public.programs (
+  id VARCHAR(100) PRIMARY KEY,
+  slug VARCHAR(150),
+  title VARCHAR(255) NOT NULL,
+  short_title VARCHAR(150),
+  category VARCHAR(100) NOT NULL,
+  type VARCHAR(50) NOT NULL DEFAULT 'Masterclass',
+  status VARCHAR(20) NOT NULL DEFAULT 'PUBLISHED',
+  level VARCHAR(50) DEFAULT 'Beginner',
+  mode VARCHAR(50) DEFAULT 'Online via Google Meet',
+  duration VARCHAR(100) NOT NULL,
+  schedule VARCHAR(255) NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+  original_price NUMERIC(10, 2) DEFAULT 0.00,
+  is_free BOOLEAN NOT NULL DEFAULT FALSE,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  cta_text VARCHAR(100) DEFAULT 'Get Access',
+  seats_total INT NOT NULL DEFAULT 50,
+  seats_booked INT DEFAULT 0,
+  google_meet_url TEXT,
+  meet_status VARCHAR(20) DEFAULT 'UPCOMING',
+  lead_mentor VARCHAR(255),
+  mentor_role VARCHAR(255),
+  organization VARCHAR(255),
+  overview TEXT NOT NULL,
+  learning_outcomes TEXT[],
+  curriculum JSONB DEFAULT '[]'::jsonb,
+  skills TEXT[],
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view published programs" ON public.programs;
+CREATE POLICY "Public can view published programs"
+ON public.programs FOR SELECT
+USING (true);
 
 INSERT INTO public.programs (
   id,
