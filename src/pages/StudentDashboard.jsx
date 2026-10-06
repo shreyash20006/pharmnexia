@@ -397,6 +397,11 @@ export const StudentDashboard = ({ onNavigate }) => {
                         <div className="font-mono text-[#087A52] text-[11px] mt-0.5">
                           {b.scheduledDate} at {b.scheduledTime} ({b.sessionDuration}m)
                         </div>
+                        {b.paymentAmount > 0 && (
+                          <div className="text-[10px] text-[#667085] mt-0.5 font-mono">
+                            Paid ₹{b.paymentAmount} • {b.paymentId ? `Razorpay: ${b.paymentId}` : 'Verified'}
+                          </div>
+                        )}
                       </div>
                     </div>
 

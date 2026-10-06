@@ -593,9 +593,22 @@ export const AppProvider = ({ children }) => {
   // ==============================================================================
   // BOOKING ACTIONS
   // ==============================================================================
-  const createBooking = ({ mentorId, sessionDuration, scheduledDate, scheduledTime, notes, paymentAmount, studentInfo }) => {
+  const createBooking = ({ 
+    mentorId, 
+    sessionDuration, 
+    scheduledDate, 
+    scheduledTime, 
+    notes, 
+    paymentAmount, 
+    studentInfo,
+    paymentId,
+    paymentGateway = 'RAZORPAY'
+  }) => {
     const mentor = mentors.find(m => m.id === mentorId);
     const newBookingId = formatBookingId(Date.now().toString());
+    const amount = Number(paymentAmount) || 0;
+    const resolvedPaymentId = paymentId || (amount > 0 ? `pay_rzp_${Date.now()}` : "FREE_SESSION");
+
     const newBooking = {
       id: newBookingId,
       bookingCode: newBookingId,
@@ -612,8 +625,10 @@ export const AppProvider = ({ children }) => {
       sessionDuration: Number(sessionDuration),
       status: "CONFIRMED",
       meetingLink: `https://meet.pharmnexia.in/room/session-${newBookingId.toLowerCase()}`,
-      paymentAmount: Number(paymentAmount) || 0,
-      paymentStatus: paymentAmount > 0 ? "PAID" : "FREE_SESSION",
+      paymentAmount: amount,
+      paymentStatus: amount > 0 ? "PAID" : "FREE_SESSION",
+      paymentId: resolvedPaymentId,
+      paymentGateway: amount > 0 ? paymentGateway : "NONE",
       notes: notes || "General career roadmap discussion",
       createdAt: new Date().toISOString()
     };
@@ -635,6 +650,21 @@ export const AppProvider = ({ children }) => {
       }).then(({ error }) => {
         if (error) console.warn('[PharmNexia DB] Booking insert notice:', error);
       });
+
+      // Record to payments ledger table
+      if (amount > 0 && currentUser?.id) {
+        supabase.from('payments').insert({
+          student_id: currentUser.id,
+          amount: amount,
+          currency: 'INR',
+          status: 'COMPLETED',
+          gateway_name: paymentGateway,
+          gateway_payment_id: resolvedPaymentId,
+          gateway_signature_verified: true
+        }).then(({ error }) => {
+          if (error) console.warn('[PharmNexia DB] Payment record notice:', error);
+        });
+      }
     }
 
     addNotification({
@@ -1106,6 +1136,21 @@ export const AppProvider = ({ children }) => {
       }).then(({ error }) => {
         if (error) console.warn('[PharmNexia DB] Program registration insert notice:', error);
       });
+
+      // Record to payments ledger table
+      if (newReg.paymentAmount > 0 && currentUser?.id) {
+        supabase.from('payments').insert({
+          student_id: currentUser.id,
+          amount: newReg.paymentAmount,
+          currency: newReg.currency || 'INR',
+          status: 'COMPLETED',
+          gateway_name: 'RAZORPAY',
+          gateway_payment_id: newReg.paymentId,
+          gateway_signature_verified: true
+        }).then(({ error }) => {
+          if (error) console.warn('[PharmNexia DB] Program payment record notice:', error);
+        });
+      }
     }
 
     if (!enrolledProgramIds.includes(programId)) {

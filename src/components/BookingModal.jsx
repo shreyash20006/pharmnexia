@@ -15,11 +15,12 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../store/AppContext';
+import { initiateRazorpayPayment } from '../lib/razorpay';
 
 export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
   const { currentUser, createBooking } = useApp();
 
-  const [step, setStep] = useState(1); // 1: Session & Date, 2: Student Notes, 3: Payment Simulation, 4: Confirmed
+  const [step, setStep] = useState(1); // 1: Session & Date, 2: Student Notes, 3: Payment Checkout, 4: Confirmed
   const [duration, setDuration] = useState(30);
   const [selectedDay, setSelectedDay] = useState(mentor?.availableDays?.[0] || "Saturday");
   const [selectedSlot, setSelectedSlot] = useState(mentor?.availableSlots?.[0] || "07:00 PM - 07:30 PM");
@@ -44,42 +45,100 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
   const [studentCollege, setStudentCollege] = useState(currentUser?.college || "");
   const [agendaNotes, setAgendaNotes] = useState("");
   
-  const [paymentMethod, setPaymentMethod] = useState("UPI"); // 'UPI' | 'CARD' | 'NETBANKING'
-  const [upiId, setUpiId] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmedBooking, setConfirmedBooking] = useState(null);
 
-  const price = duration === 30 ? mentor.price30 : mentor.price60;
+  const price = duration === 30 ? Number(mentor.price30) || 0 : Number(mentor.price60) || 0;
   const isFreeOrHonorarium = price === 0;
 
   const handleConfirmPaymentAndBooking = () => {
+    if (isFreeOrHonorarium) {
+      // Free or Volunteer Mentorship: confirm directly
+      setIsProcessing(true);
+      setTimeout(() => {
+        const booking = createBooking({
+          mentorId: mentor.id,
+          sessionDuration: duration,
+          scheduledDate: calculatedDate,
+          scheduledTime: selectedSlot,
+          notes: agendaNotes,
+          paymentAmount: 0,
+          paymentId: 'FREE_SESSION',
+          paymentGateway: 'NONE',
+          studentInfo: {
+            name: studentName || currentUser?.name || "Student Aspirant",
+            email: studentEmail || currentUser?.email || "",
+            college: studentCollege || currentUser?.college || ""
+          }
+        });
+
+        setConfirmedBooking(booking);
+        setIsProcessing(false);
+        setStep(4);
+
+        confetti({
+          particleCount: 90,
+          spread: 60,
+          origin: { y: 0.6 }
+        });
+      }, 600);
+      return;
+    }
+
+    // Paid Mentorship Session: Launch Razorpay Checkout
     setIsProcessing(true);
-    setTimeout(() => {
-      const booking = createBooking({
-        mentorId: mentor.id,
-        sessionDuration: duration,
-        scheduledDate: calculatedDate,
-        scheduledTime: selectedSlot,
-        notes: agendaNotes,
-        paymentAmount: price,
-        studentInfo: {
-          name: studentName || currentUser?.name || "Student Aspirant",
-          email: studentEmail || currentUser?.email || "",
-          college: studentCollege || currentUser?.college || ""
-        }
-      });
 
-      setConfirmedBooking(booking);
-      setIsProcessing(false);
-      setStep(4);
+    initiateRazorpayPayment({
+      amount: price,
+      name: 'PharmNexia Mentorship',
+      description: `${duration}m 1-on-1 session with ${mentor.name}`,
+      prefill: {
+        name: studentName || currentUser?.name || 'Student Aspirant',
+        email: studentEmail || currentUser?.email || '',
+        contact: currentUser?.phone || ''
+      },
+      notes: {
+        mentor_id: mentor.id,
+        mentor_name: mentor.name,
+        session_duration: String(duration),
+        scheduled_date: calculatedDate,
+        scheduled_time: selectedSlot
+      },
+      onSuccess: (response) => {
+        const booking = createBooking({
+          mentorId: mentor.id,
+          sessionDuration: duration,
+          scheduledDate: calculatedDate,
+          scheduledTime: selectedSlot,
+          notes: agendaNotes,
+          paymentAmount: price,
+          paymentId: response.razorpay_payment_id,
+          paymentGateway: 'RAZORPAY',
+          studentInfo: {
+            name: studentName || currentUser?.name || "Student Aspirant",
+            email: studentEmail || currentUser?.email || "",
+            college: studentCollege || currentUser?.college || ""
+          }
+        });
 
-      // Trigger celebratory confetti
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }, 1200);
+        setConfirmedBooking(booking);
+        setIsProcessing(false);
+        setStep(4);
+
+        confetti({
+          particleCount: 110,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      },
+      onDismiss: () => {
+        setIsProcessing(false);
+      },
+      onError: (err) => {
+        setIsProcessing(false);
+        alert(err.message || 'Payment was cancelled or could not be completed.');
+      }
+    });
   };
 
   return (
@@ -342,51 +401,20 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
 
             {!isFreeOrHonorarium && (
               <div className="space-y-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#667085] font-mono">
-                  Select Payment Method
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("UPI")}
-                    className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition ${
-                      paymentMethod === "UPI" ? 'border-[#00A86B] bg-[#E8F8F1] text-[#087A52]' : 'border-[#E5E7EB] bg-white text-[#111827]'
-                    }`}
-                  >
-                    UPI / QR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("CARD")}
-                    className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition ${
-                      paymentMethod === "CARD" ? 'border-[#00A86B] bg-[#E8F8F1] text-[#087A52]' : 'border-[#E5E7EB] bg-white text-[#111827]'
-                    }`}
-                  >
-                    Debit / Card
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod("NETBANKING")}
-                    className={`p-2.5 rounded-lg border text-center text-xs font-semibold transition ${
-                      paymentMethod === "NETBANKING" ? 'border-[#00A86B] bg-[#E8F8F1] text-[#087A52]' : 'border-[#E5E7EB] bg-white text-[#111827]'
-                    }`}
-                  >
-                    NetBanking
-                  </button>
-                </div>
-
-                {paymentMethod === "UPI" && (
-                  <div>
-                    <label className="block text-xs text-[#667085] mb-1">Enter UPI ID</label>
-                    <input 
-                      type="text" 
-                      value={upiId}
-                      onChange={(e) => setUpiId(e.target.value)}
-                      placeholder="e.g. yourname@okhdfcbank or 9876543210@upi"
-                      className="w-full text-xs p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white placeholder-[#9CA3AF]"
-                    />
+                <div className="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[#101828] flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-[#00A86B]" />
+                      <span>Razorpay Secure Gateway</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#E8F8F1] text-[#087A52] font-bold border border-[#00A86B]/20">
+                      PCI-DSS Verified
+                    </span>
                   </div>
-                )}
+                  <p className="text-[11px] text-[#667085] leading-relaxed">
+                    Fast checkout via <strong>UPI (GPay, PhonePe, Paytm), Debit/Credit Cards (Visa, Mastercard, RuPay), NetBanking, & Wallets</strong>.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -401,7 +429,7 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="px-4 py-2 text-xs font-semibold text-[#667085] hover:text-[#111827] transition"
+                className="px-4 py-2 text-xs font-semibold text-[#667085] hover:text-[#111827] transition cursor-pointer"
               >
                 ← Back
               </button>
@@ -409,12 +437,12 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
                 type="button"
                 disabled={isProcessing}
                 onClick={handleConfirmPaymentAndBooking}
-                className="px-6 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition disabled:opacity-50 flex items-center gap-2 cursor-pointer btn-primary-action"
               >
                 {isProcessing ? (
-                  <span>Securing Session...</span>
+                  <span>Securing with Razorpay...</span>
                 ) : (
-                  <span>{isFreeOrHonorarium ? 'Confirm Session' : `Authorize ₹${price}`}</span>
+                  <span>{isFreeOrHonorarium ? 'Confirm Free Session' : `Pay ₹${price} via Razorpay`}</span>
                 )}
               </button>
             </div>
@@ -453,6 +481,12 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
                 <Video className="w-4 h-4 text-[#00A86B]" />
                 <span>Meeting Room: <strong className="text-[#087A52]">Secured Virtual Room</strong></span>
               </div>
+              {confirmedBooking.paymentId && confirmedBooking.paymentId !== 'FREE_SESSION' && (
+                <div className="flex items-center gap-2.5 text-[#111827]">
+                  <CreditCard className="w-4 h-4 text-[#00A86B]" />
+                  <span>Payment: <strong className="font-mono text-[#087A52]">Razorpay ({confirmedBooking.paymentId})</strong></span>
+                </div>
+              )}
               <div className="flex items-center gap-2.5 text-[#111827]">
                 <Mail className="w-4 h-4 text-[#00A86B]" />
                 <span>Calendar Invite sent to: <strong className="text-[#101828]">{confirmedBooking.studentEmail}</strong></span>

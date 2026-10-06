@@ -20,6 +20,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '../store/AppContext';
 import { FadeUp, FadeLeft, FadeRight } from '../components/Animation';
+import { initiateRazorpayPayment } from '../lib/razorpay';
 
 const ProgramDetailSkeleton = ({ onNavigate }) => (
   <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-white animate-pulse">
@@ -107,19 +108,72 @@ export const ProgramDetailPage = ({ programId, onNavigate }) => {
       trackAnalyticsEvent({ programId: program.id, eventType: 'REGISTRATION_VISIT' });
     }
 
-    setIsRegistering(true);
-    setTimeout(() => {
-      const reg = registerForProgram(program.id);
-      setConfirmedRegData(reg);
-      setIsRegistering(false);
-      setShowSuccessModal(true);
+    const isPaid = !program.isFree && Number(program.price) > 0;
 
-      confetti({
-        particleCount: 90,
-        spread: 60,
-        origin: { y: 0.6 }
-      });
-    }, 800);
+    if (!isPaid) {
+      // Free Program: Instant Enrollment
+      setIsRegistering(true);
+      setTimeout(() => {
+        const reg = registerForProgram(program.id);
+        setConfirmedRegData(reg);
+        setIsRegistering(false);
+        setShowSuccessModal(true);
+
+        confetti({
+          particleCount: 90,
+          spread: 60,
+          origin: { y: 0.6 }
+        });
+      }, 600);
+      return;
+    }
+
+    // Paid Program: Launch Razorpay Checkout
+    if (trackAnalyticsEvent) {
+      trackAnalyticsEvent({ programId: program.id, eventType: 'PAYMENT_PAGE_VISIT' });
+      trackAnalyticsEvent({ programId: program.id, eventType: 'PAYMENT_INITIATED' });
+    }
+
+    setIsRegistering(true);
+
+    initiateRazorpayPayment({
+      amount: program.price,
+      name: 'PharmNexia Cohort',
+      description: program.title,
+      prefill: {
+        name: currentUser?.name || 'Student Aspirant',
+        email: currentUser?.email || '',
+        contact: currentUser?.phone || ''
+      },
+      notes: {
+        program_id: program.id,
+        program_title: program.title,
+        cohort_duration: program.duration || ''
+      },
+      onSuccess: (response) => {
+        const reg = registerForProgram(program.id, {
+          paymentId: response.razorpay_payment_id,
+          name: currentUser?.name,
+          email: currentUser?.email
+        });
+        setConfirmedRegData(reg);
+        setIsRegistering(false);
+        setShowSuccessModal(true);
+
+        confetti({
+          particleCount: 110,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      },
+      onDismiss: () => {
+        setIsRegistering(false);
+      },
+      onError: (err) => {
+        setIsRegistering(false);
+        alert(err.message || 'Payment was cancelled or could not be processed.');
+      }
+    });
   };
 
   const discountPercent = program.originalPrice && program.originalPrice > program.price
@@ -460,6 +514,13 @@ export const ProgramDetailPage = ({ programId, onNavigate }) => {
             <p className="text-xs text-[#667085] leading-relaxed">
               You are officially registered for <strong>{program.title}</strong>. Your ticket code is <strong className="text-[#087A52] font-mono">{confirmedRegData?.registrationCode || 'PHN-REG-ACTIVE'}</strong>.
             </p>
+
+            {confirmedRegData?.paymentId && confirmedRegData.paymentId !== 'FREE_ENROLLMENT' && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8F8F1] border border-[#00A86B]/20 text-[#087A52] text-[11px] font-mono font-medium">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#00A86B]" />
+                <span>Razorpay Txn: {confirmedRegData.paymentId}</span>
+              </div>
+            )}
 
             <div className="p-3.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-left text-xs space-y-1.5">
               <div className="font-semibold text-[#101828] flex items-center gap-1.5">
