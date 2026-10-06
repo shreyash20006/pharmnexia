@@ -4,6 +4,8 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 import { PageTransition } from './components/Animation';
+import { SupportDeskModal } from './components/SupportDeskModal';
+import { SupportDeskAdmin } from './components/SupportDeskAdmin';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -168,6 +170,14 @@ function AppContent() {
       return <AdminDashboard onNavigate={navigate} />;
     }
 
+    // 11. Support Desk Management Console (Direct Route)
+    if (currentPath === '/support-desk' || currentPath === '/support') {
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <SupportDeskAdmin onNavigate={navigate} />
+        </div>
+      );
+    }
     // 11. Legal & Compliance Pages
     if (currentPath === '/privacy') {
       return <PrivacyPolicyPage onNavigate={navigate} />;
@@ -215,6 +225,14 @@ function AppContent() {
         onSuccess={() => {
           setAuthModalOpen(false);
           navigate('/dashboard');
+        }}
+      />
+
+      {/* Personalized PharmNexia Support Desk Floating Widget */}
+      <SupportDeskModal 
+        onOpenAuth={(mode) => {
+          setAuthModalMode(mode);
+          setAuthModalOpen(true);
         }}
       />
     </div>

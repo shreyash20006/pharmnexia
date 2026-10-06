@@ -20,7 +20,10 @@ import {
   Camera,
   LogOut,
   Sparkles,
-  X
+  X,
+  MessageSquare,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { CertificateViewer } from '../components/CertificateViewer';
@@ -35,8 +38,11 @@ export const StudentDashboard = ({ onNavigate }) => {
     opportunities, 
     savedOpportunityIds,
     updateStudentProfile,
-    cancelBooking
+    cancelBooking,
+    supportTickets = []
   } = useApp();
+
+  const [copiedId, setCopiedId] = useState(null);
 
   // Redirect / prompt if not signed in
   if (!currentUser) {
@@ -98,11 +104,16 @@ export const StudentDashboard = ({ onNavigate }) => {
 
   const upcomingBooking = bookings.find(b => b.status === 'CONFIRMED');
 
+  const userTickets = supportTickets.filter(t => 
+    t.userId === currentUser?.id || t.userPharmNexiaId === currentUser?.pharmNexiaId || t.userEmail === currentUser?.email
+  );
+
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'mentorships', label: 'My Mentorships', icon: Users, badge: bookings.length },
     { id: 'programs', label: 'My Programs', icon: BookOpen, badge: enrolledProgramIds.length },
     { id: 'certificates', label: 'My Certificates', icon: Award, badge: studentCertificates.length },
+    { id: 'support', label: 'Support Desk', icon: MessageSquare, badge: `${userTickets.length} Tickets` },
     { id: 'applications', label: 'My Applications', icon: Briefcase, badge: '0 Active' },
     { id: 'saved', label: 'Saved Opportunities', icon: Bookmark, badge: savedOpportunityIds.length },
     { id: 'profile', label: 'Student Profile', icon: User },
@@ -120,14 +131,25 @@ export const StudentDashboard = ({ onNavigate }) => {
             className="w-14 h-14 rounded-2xl object-cover border-2 border-[#00A86B] shadow-sm"
           />
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-bold text-[#101828] font-heading">{currentUser?.name || 'Student Portal'}</h1>
-              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20 font-semibold">
-                Verified Student
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20 font-bold flex items-center gap-1.5">
+                <span>{currentUser?.pharmNexiaId || 'PHN-STU-001247'}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(currentUser?.pharmNexiaId || 'PHN-STU-001247');
+                    setCopiedId('header-id');
+                    setTimeout(() => setCopiedId(null), 2000);
+                  }}
+                  className="hover:text-[#00A86B] text-emerald-600 focus:outline-none"
+                  title="Copy Student ID"
+                >
+                  {copiedId === 'header-id' ? <Check className="w-3 h-3 text-[#00A86B]" /> : <Copy className="w-3 h-3" />}
+                </button>
               </span>
             </div>
             <p className="text-xs text-[#667085] mt-0.5">
-              {currentUser?.college} • {currentUser?.degree} ({currentUser?.year})
+              {currentUser?.college ? `${currentUser.college} • ` : ''}{currentUser?.degree || 'B.Pharm'} ({currentUser?.year || '3rd Year'})
             </p>
           </div>
         </div>
@@ -499,6 +521,90 @@ export const StudentDashboard = ({ onNavigate }) => {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SUPPORT DESK */}
+          {activeTab === 'support' && (
+            <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-[#E5E7EB]">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-[#101828] font-heading">Personalized Support Desk</h2>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#E8F8F1] text-[#087A52]">
+                      {currentUser?.pharmNexiaId || 'PHN-STU-001247'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#667085] mt-0.5">
+                    Your queries are permanently linked to your PharmNexia ID. No repeated explanations needed.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    // Open floating desk modal
+                    const triggerBtn = document.querySelector('[aria-label="Open PharmNexia Support Desk"]');
+                    if (triggerBtn) triggerBtn.click();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition flex items-center gap-2"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Open Live Chat / New Ticket</span>
+                </button>
+              </div>
+
+              {/* Tickets List */}
+              <div className="space-y-3">
+                {userTickets.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-[#667085] border border-dashed border-[#E5E7EB] rounded-2xl">
+                    No active support requests. Have a question about a mentor session, payment, or roadmap?
+                    <div className="mt-3">
+                      <button
+                        onClick={() => {
+                          const triggerBtn = document.querySelector('[aria-label="Open PharmNexia Support Desk"]');
+                          if (triggerBtn) triggerBtn.click();
+                        }}
+                        className="text-xs font-semibold text-[#00A86B] hover:underline"
+                      >
+                        Start support chat now →
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  userTickets.map(tkt => (
+                    <div
+                      key={tkt.id}
+                      onClick={() => {
+                        const triggerBtn = document.querySelector('[aria-label="Open PharmNexia Support Desk"]');
+                        if (triggerBtn) triggerBtn.click();
+                      }}
+                      className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] hover:border-[#00A86B] transition cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs text-[#101828]">{tkt.id}</span>
+                          <span className="text-xs text-[#667085]">• {tkt.category}</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8F1] text-[#087A52]">
+                            {tkt.status}
+                          </span>
+                        </div>
+                        <div className="font-semibold text-xs text-[#101828] group-hover:text-[#00A86B] transition-colors">
+                          {tkt.subject}
+                        </div>
+                        {tkt.assignedAgent && (
+                          <div className="text-[11px] text-[#667085]">
+                            Assigned to: <strong className="text-[#475467]">{tkt.assignedAgent.name}</strong> ({tkt.assignedAgent.pharmNexiaId})
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <span className="text-[11px] font-semibold text-[#00A86B] group-hover:underline">
+                          View Conversation →
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

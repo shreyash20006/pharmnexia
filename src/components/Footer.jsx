@@ -104,6 +104,18 @@ export const Footer = ({ onNavigate }) => {
                   About
                 </button>
               </li>
+              <li>
+                <button 
+                  onClick={() => {
+                    const triggerBtn = document.querySelector('[aria-label="Open PharmNexia Support Desk"]');
+                    if (triggerBtn) triggerBtn.click();
+                  }} 
+                  className="hover:text-[#00A86B] transition-colors text-left flex items-center gap-1.5"
+                >
+                  <span>Support Desk</span>
+                  <span className="text-[10px] bg-[#E8F8F1] text-[#087A52] px-1.5 py-0.2 rounded font-semibold">24/7</span>
+                </button>
+              </li>
             </ul>
           </div>
 

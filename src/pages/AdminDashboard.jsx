@@ -29,6 +29,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
+import { SupportDeskAdmin } from '../components/SupportDeskAdmin';
 
 export const AdminDashboard = ({ onNavigate }) => {
   const { 
@@ -41,7 +42,8 @@ export const AdminDashboard = ({ onNavigate }) => {
     bookings, 
     opportunities, 
     programs,
-    auditLogs 
+    auditLogs,
+    supportTickets 
   } = useApp();
 
   // Security check for Admin Hub
@@ -204,6 +206,7 @@ Reserve your free seat here: https://pharmnexia.in/programs`
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E5E7EB] text-xs font-semibold scrollbar-none">
         {[
           { id: 'dashboard', label: 'Metrics & Analytics', icon: LayoutDashboard },
+          { id: 'support', label: 'Support Desk', icon: MessageSquare, count: supportTickets.length },
           { id: 'mentors', label: 'Mentors Management', icon: Users, count: mentors.length },
           { id: 'applications', label: 'Credential Verifications', icon: ShieldCheck, count: pendingMentors.length },
           { id: 'certificates', label: 'Certificates Registry', icon: Award, count: certificates.length },
@@ -236,6 +239,11 @@ Reserve your free seat here: https://pharmnexia.in/programs`
           );
         })}
       </div>
+
+      {/* SECTION: SUPPORT DESK CONSOLE */}
+      {activeSection === 'support' && (
+        <SupportDeskAdmin onNavigate={onNavigate} />
+      )}
 
       {/* SECTION: DASHBOARD KPI OVERVIEW */}
       {activeSection === 'dashboard' && (

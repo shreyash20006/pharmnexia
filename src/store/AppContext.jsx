@@ -6,6 +6,8 @@ import { RESOURCES } from '../data/resourcesData';
 import { INITIAL_CERTIFICATES } from '../data/certificatesData';
 import { CAREER_PATHS } from '../data/careerPathsData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { formatPharmNexiaId, formatTicketId, formatBookingId, SUPPORT_AGENTS } from '../utils/idGenerator';
+import { INITIAL_SUPPORT_TICKETS } from '../data/supportTicketsData';
 
 const AppContext = createContext(null);
 
@@ -20,6 +22,11 @@ export const AppProvider = ({ children }) => {
       if (parsed?.id === 'std-001' || parsed?.id === 'mentor-03' || parsed?.id === 'adm-001') {
         localStorage.removeItem('pharmnexia_user');
         return null;
+      }
+      // Ensure user has their unique PharmNexia ID
+      if (!parsed.pharmNexiaId) {
+        parsed.pharmNexiaId = formatPharmNexiaId(parsed.role || 'STUDENT', parsed.id || parsed.email);
+        localStorage.setItem('pharmnexia_user', JSON.stringify(parsed));
       }
       return parsed;
     } catch {
@@ -84,6 +91,16 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  // 6. Support Tickets State (Persistent & linked to student)
+  const [supportTickets, setSupportTickets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pharmnexia_support_tickets');
+      return saved ? JSON.parse(saved) : INITIAL_SUPPORT_TICKETS;
+    } catch {
+      return INITIAL_SUPPORT_TICKETS;
+    }
+  });
+
   const [notifications, setNotifications] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
 
@@ -92,15 +109,18 @@ export const AppProvider = ({ children }) => {
     if (!user) return null;
     const meta = user.user_metadata || {};
     const fullName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
+    const role = (meta.role || 'STUDENT').toUpperCase();
     return {
       id: user.id,
+      pharmNexiaId: meta.pharm_nexia_id || formatPharmNexiaId(role, user.id || user.email),
       email: user.email,
       name: fullName,
-      role: meta.role || 'STUDENT',
+      role: role,
       college: meta.college || '',
       degree: meta.degree || 'B.Pharm',
-      year: meta.year || '1st Year',
+      year: meta.year || '3rd Year',
       bio: meta.bio || '',
+      interests: meta.interests || ['Pharmacovigilance', 'Medical Writing'],
       avatar: meta.avatar_url || meta.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`,
       provider: user.app_metadata?.provider || 'supabase'
     };
@@ -223,6 +243,10 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('pharmnexia_enrolled_progs', JSON.stringify(enrolledProgramIds));
   }, [enrolledProgramIds]);
 
+  useEffect(() => {
+    localStorage.setItem('pharmnexia_support_tickets', JSON.stringify(supportTickets));
+  }, [supportTickets]);
+
   // ==============================================================================
   // AUTHENTICATION ACTIONS (REAL GOOGLE & EMAIL AUTH VIA SUPABASE)
   // ==============================================================================
@@ -256,11 +280,13 @@ export const AppProvider = ({ children }) => {
       // Local fallback when Supabase keys are pending
       const mockUser = {
         id: `usr-${Date.now()}`,
+        pharmNexiaId: formatPharmNexiaId('STUDENT', email),
         email: email.trim(),
         name: email.split('@')[0],
         role: 'STUDENT',
         degree: 'B.Pharm',
         year: '3rd Year',
+        interests: ['Pharmacovigilance', 'Medical Writing'],
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(email)}`,
         provider: 'local'
       };
@@ -282,12 +308,14 @@ export const AppProvider = ({ children }) => {
     if (!supabase || !isSupabaseConfigured) {
       const mockUser = {
         id: `usr-${Date.now()}`,
+        pharmNexiaId: formatPharmNexiaId(metadata.role || 'STUDENT', email),
         email: email.trim(),
         name: metadata.name || email.split('@')[0],
-        role: 'STUDENT',
+        role: metadata.role || 'STUDENT',
         degree: metadata.degree || 'B.Pharm',
         year: metadata.year || '1st Year',
         college: metadata.college || '',
+        interests: metadata.interests || ['Pharmacovigilance', 'Clinical Research'],
         avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(metadata.name || email)}`,
         provider: 'local'
       };
@@ -304,7 +332,8 @@ export const AppProvider = ({ children }) => {
           degree: metadata.degree || 'B.Pharm',
           year: metadata.year || '1st Year',
           college: metadata.college || '',
-          role: 'STUDENT'
+          role: metadata.role || 'STUDENT',
+          pharm_nexia_id: formatPharmNexiaId(metadata.role || 'STUDENT', email)
         }
       }
     });
@@ -348,11 +377,12 @@ export const AppProvider = ({ children }) => {
   // ==============================================================================
   const createBooking = ({ mentorId, sessionDuration, scheduledDate, scheduledTime, notes, paymentAmount, studentInfo }) => {
     const mentor = mentors.find(m => m.id === mentorId);
-    const newBookingId = `BK-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newBookingId = formatBookingId(Date.now().toString());
     const newBooking = {
       id: newBookingId,
       bookingCode: newBookingId,
       studentId: currentUser?.id || "guest-std",
+      studentPharmNexiaId: currentUser?.pharmNexiaId || "PHN-STU-001247",
       studentName: studentInfo?.name || currentUser?.name || "Student Aspirant",
       studentEmail: studentInfo?.email || currentUser?.email || "",
       mentorId: mentor?.id,
@@ -374,12 +404,146 @@ export const AppProvider = ({ children }) => {
 
     addNotification({
       title: "Booking Confirmed!",
-      message: `Your mentorship session with ${mentor?.name || 'Mentor'} is scheduled for ${scheduledDate} at ${scheduledTime}.`,
+      message: `Your mentorship session with ${mentor?.name || 'Mentor'} is scheduled for ${scheduledDate} at ${scheduledTime}. (Booking ID: ${newBookingId})`,
       type: "BOOKING",
       link: "/dashboard"
     });
 
     return newBooking;
+  };
+
+  // ==============================================================================
+  // SUPPORT DESK ACTIONS (Personalized, Ticket-Based, Privacy-Enforced)
+  // ==============================================================================
+  const createSupportTicket = ({ category, subject, initialMessage, attachedContext = {} }) => {
+    const studentId = currentUser?.pharmNexiaId || formatPharmNexiaId(currentUser?.role || 'STUDENT', currentUser?.id || currentUser?.email || 'guest');
+    const ticketId = formatTicketId(supportTickets.length + 4825);
+    
+    // Auto-assignment to available support executive
+    const assignedAgent = SUPPORT_AGENTS[supportTickets.length % SUPPORT_AGENTS.length];
+
+    const newTicket = {
+      id: ticketId,
+      userId: currentUser?.id || 'guest',
+      userName: currentUser?.name || 'Student Aspirant',
+      userPharmNexiaId: studentId,
+      userEmail: currentUser?.email || '',
+      userRole: currentUser?.role || 'STUDENT',
+      category: category || 'Other',
+      subject: subject || `${category || 'Support'} Request`,
+      context: {
+        bookingId: attachedContext?.bookingId || '',
+        mentorName: attachedContext?.mentorName || '',
+        sessionDate: attachedContext?.sessionDate || '',
+        paymentStatus: attachedContext?.paymentStatus || '',
+        paymentAmount: attachedContext?.paymentAmount || null,
+        education: currentUser?.degree ? `${currentUser.degree} — ${currentUser.year || 'Student'}` : 'B.Pharm',
+        interests: currentUser?.interests || ['Pharmacovigilance', 'Medical Writing'],
+        recentActivity: attachedContext?.recentActivity || [
+          `Joined PharmNexia (${studentId})`,
+          `Opened Support Ticket ${ticketId}`
+        ]
+      },
+      status: 'ASSIGNED',
+      assignedAgent: {
+        id: assignedAgent.id,
+        pharmNexiaId: assignedAgent.pharmNexiaId,
+        name: assignedAgent.name,
+        roleTitle: assignedAgent.roleTitle,
+        avatar: assignedAgent.avatar
+      },
+      messages: [
+        {
+          id: `msg-${Date.now()}-1`,
+          senderId: studentId,
+          senderRole: 'STUDENT',
+          senderName: currentUser?.name || 'Student',
+          text: initialMessage,
+          timestamp: 'Just now'
+        },
+        {
+          id: `msg-${Date.now()}-2`,
+          senderId: assignedAgent.pharmNexiaId,
+          senderRole: 'SUPPORT',
+          senderName: assignedAgent.name,
+          text: `Hi ${currentUser?.name ? currentUser.name.split(' ')[0] : 'there'}! 👋 I am ${assignedAgent.name} from PharmNexia Support Desk. I've received your request under ticket ${ticketId}. Let me check that for you right away.`,
+          timestamp: 'Just now'
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setSupportTickets(prev => [newTicket, ...prev]);
+
+    addNotification({
+      title: "Support Ticket Opened",
+      message: `Your ticket ${ticketId} has been created and assigned to ${assignedAgent.name}.`,
+      type: "SYSTEM"
+    });
+
+    return newTicket;
+  };
+
+  const sendMessageToTicket = (ticketId, text, senderRole = 'STUDENT', senderName = '') => {
+    if (!text || !text.trim()) return;
+    const now = new Date();
+    const timeFormatted = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setSupportTickets(prev => prev.map(tkt => {
+      if (tkt.id !== ticketId) return tkt;
+      const isStudent = senderRole === 'STUDENT';
+      const senderId = isStudent 
+        ? (currentUser?.pharmNexiaId || tkt.userPharmNexiaId)
+        : (tkt.assignedAgent?.pharmNexiaId || 'PHN-SPT-000001');
+      const name = senderName || (isStudent ? (currentUser?.name || tkt.userName) : (tkt.assignedAgent?.name || 'Support Executive'));
+
+      const newMsg = {
+        id: `msg-${Date.now()}`,
+        senderId,
+        senderRole,
+        senderName: name,
+        text: text.trim(),
+        timestamp: `Today, ${timeFormatted}`
+      };
+
+      return {
+        ...tkt,
+        status: isStudent ? (tkt.status === 'WAITING_FOR_STUDENT' ? 'IN_PROGRESS' : tkt.status) : tkt.status,
+        messages: [...tkt.messages, newMsg],
+        updatedAt: now.toISOString()
+      };
+    }));
+  };
+
+  const updateTicketStatus = (ticketId, newStatus) => {
+    setSupportTickets(prev => prev.map(tkt => {
+      if (tkt.id !== ticketId) return tkt;
+      return {
+        ...tkt,
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      };
+    }));
+  };
+
+  const assignTicketAgent = (ticketId, agentId) => {
+    const agent = SUPPORT_AGENTS.find(a => a.id === agentId || a.pharmNexiaId === agentId) || SUPPORT_AGENTS[0];
+    setSupportTickets(prev => prev.map(tkt => {
+      if (tkt.id !== ticketId) return tkt;
+      return {
+        ...tkt,
+        assignedAgent: {
+          id: agent.id,
+          pharmNexiaId: agent.pharmNexiaId,
+          name: agent.name,
+          roleTitle: agent.roleTitle,
+          avatar: agent.avatar
+        },
+        status: tkt.status === 'NEW' ? 'ASSIGNED' : tkt.status,
+        updatedAt: new Date().toISOString()
+      };
+    }));
   };
 
   const cancelBooking = (bookingId, reason = "Student requested cancellation") => {
@@ -512,6 +676,12 @@ export const AppProvider = ({ children }) => {
         enrolledProgramIds,
         notifications,
         auditLogs,
+        supportTickets,
+        supportAgents: SUPPORT_AGENTS,
+        createSupportTicket,
+        sendMessageToTicket,
+        updateTicketStatus,
+        assignTicketAgent,
         createBooking,
         cancelBooking,
         registerForProgram,
