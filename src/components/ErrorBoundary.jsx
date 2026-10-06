@@ -91,7 +91,7 @@ export class ErrorBoundary extends React.Component {
             </div>
 
             {/* Development Debug Info */}
-            {process.env.NODE_ENV !== 'production' && this.state.error && (
+            {Boolean(import.meta.env?.DEV) && this.state.error && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-left text-[11px] font-mono text-red-800 overflow-x-auto max-h-40">
                 <div className="font-bold mb-1">{this.state.error.toString()}</div>
                 <div className="whitespace-pre-wrap text-[10px] text-red-600">

@@ -32,15 +32,21 @@ export const ProgramsPage = ({ onNavigate }) => {
     "Career Bootcamps"
   ];
 
-  const filtered = programs.filter(prog => {
-    const matchesSearch = prog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          prog.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          prog.overview.toLowerCase().includes(searchQuery.toLowerCase());
+  const safePrograms = Array.isArray(programs) ? programs : [];
+
+  const filtered = safePrograms.filter(prog => {
+    if (!prog) return false;
+    const title = (prog.title || '').toLowerCase();
+    const category = (prog.category || '').toLowerCase();
+    const overview = (prog.overview || '').toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+
+    const matchesSearch = !query || title.includes(query) || category.includes(query) || overview.includes(query);
     const matchesCat = selectedCategory === "ALL" || prog.category === selectedCategory;
     const matchesPrice = selectedPriceFilter === "ALL" || 
                          (selectedPriceFilter === "FREE" && prog.isFree) || 
                          (selectedPriceFilter === "PAID" && !prog.isFree);
-    const matchesLevel = selectedLevel === "ALL" || prog.level.includes(selectedLevel);
+    const matchesLevel = selectedLevel === "ALL" || (prog.level && prog.level.includes(selectedLevel));
 
     return matchesSearch && matchesCat && matchesPrice && matchesLevel;
   });
@@ -133,74 +139,91 @@ export const ProgramsPage = ({ onNavigate }) => {
       </FadeUp>
 
       {/* Programs Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map((prog, idx) => (
-          <ScrollReveal 
-            key={prog.id}
-            direction="up" 
-            delay={(idx % 6) * 75}
-          >
-            <div 
-              className="p-6 sm:p-7 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm hover:border-[#00A86B]/60 transition-all duration-200 flex flex-col justify-between card-lift h-full"
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((prog, idx) => (
+            <ScrollReveal 
+              key={prog.id}
+              direction="up" 
+              delay={(idx % 6) * 75}
             >
-              <div>
-                <div className="flex items-center justify-between mb-3 text-[13px]">
-                  <span className="font-semibold text-[#087A52] bg-[#E8F8F1] px-2.5 py-0.5 rounded-full border border-[#00A86B]/20">
-                    {prog.category}
-                  </span>
-                  <span className="text-[#667085] font-mono text-[12px]">{prog.duration}</span>
-                </div>
-
-                <h2 className="text-[19px] sm:text-[20px] font-bold text-[#101828] mb-2 leading-snug font-heading">
-                  {prog.title}
-                </h2>
-
-                <p className="text-[14.5px] text-[#667085] leading-[1.6] line-clamp-3 mb-4">
-                  {prog.overview}
-                </p>
-
-                <div className="space-y-2 text-[13.5px] text-[#667085] bg-[#F8FAF9] p-3.5 rounded-xl border border-[#E5E7EB] mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#667085]">Instructor:</span>
-                    <strong className="text-[#101828] truncate max-w-[170px]">{prog.leadMentor}</strong>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#667085]">Schedule:</span>
-                    <span className="text-[#111827] font-mono text-[12px]">{prog.duration}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#667085]">Seats:</span>
-                    <span className="font-mono text-[#087A52] font-bold">{prog.seatsBooked} / {prog.seatsTotal} enrolled</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+              <div 
+                className="p-6 sm:p-7 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm hover:border-[#00A86B]/60 transition-all duration-200 flex flex-col justify-between card-lift h-full"
+              >
                 <div>
-                  <div className="text-[18px] font-black text-[#101828] font-mono">
-                    {prog.isFree ? (
-                      <span className="text-[#087A52]">100% Free</span>
-                    ) : (
-                      <span>₹{prog.price}</span>
+                  <div className="flex items-center justify-between mb-3 text-[13px]">
+                    <span className="font-semibold text-[#087A52] bg-[#E8F8F1] px-2.5 py-0.5 rounded-full border border-[#00A86B]/20">
+                      {prog.category}
+                    </span>
+                    <span className="text-[#667085] font-mono text-[12px]">{prog.duration}</span>
+                  </div>
+
+                  <h2 className="text-[19px] sm:text-[20px] font-bold text-[#101828] mb-2 leading-snug font-heading">
+                    {prog.title}
+                  </h2>
+
+                  <p className="text-[14.5px] text-[#667085] leading-[1.6] line-clamp-3 mb-4">
+                    {prog.overview}
+                  </p>
+
+                  <div className="space-y-2 text-[13.5px] text-[#667085] bg-[#F8FAF9] p-3.5 rounded-xl border border-[#E5E7EB] mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#667085]">Instructor:</span>
+                      <strong className="text-[#101828] truncate max-w-[170px]">{prog.leadMentor}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#667085]">Schedule:</span>
+                      <span className="text-[#111827] font-mono text-[12px]">{prog.duration}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#667085]">Seats:</span>
+                      <span className="font-mono text-[#087A52] font-bold">{prog.seatsBooked} / {prog.seatsTotal} enrolled</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-between">
+                  <div>
+                    <div className="text-[18px] font-black text-[#101828] font-mono">
+                      {prog.isFree ? (
+                        <span className="text-[#087A52]">100% Free</span>
+                      ) : (
+                        <span>₹{prog.price}</span>
+                      )}
+                    </div>
+                    {prog.originalPrice > 0 && !prog.isFree && (
+                      <div className="text-[11px] text-[#667085] line-through font-mono">₹{prog.originalPrice}</div>
                     )}
                   </div>
-                  {prog.originalPrice > 0 && !prog.isFree && (
-                    <div className="text-[11px] text-[#667085] line-through font-mono">₹{prog.originalPrice}</div>
-                  )}
-                </div>
 
-                <button
-                  onClick={() => onNavigate(`/programs/${prog.id}`)}
-                  className="px-4 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[14px] shadow-sm transition flex items-center gap-1.5 btn-primary-action"
-                >
-                  <span>View Syllabus</span>
-                  <ArrowRight className="w-3.5 h-3.5 btn-arrow" />
-                </button>
+                  <button
+                    onClick={() => onNavigate(`/programs/${prog.id}`)}
+                    className="px-4 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[14px] shadow-sm transition flex items-center gap-1.5 btn-primary-action"
+                  >
+                    <span>View Syllabus</span>
+                    <ArrowRight className="w-3.5 h-3.5 btn-arrow" />
+                  </button>
+                </div>
               </div>
-            </div>
-          </ScrollReveal>
-        ))}
-      </div>
+            </ScrollReveal>
+          ))}
+        </div>
+      ) : (
+        <div className="p-12 text-center bg-[#F8FAF9] rounded-2xl border border-[#E5E7EB] text-[#667085] space-y-3">
+          <p className="text-base font-semibold text-[#101828]">No programs found</p>
+          <p className="text-xs max-w-sm mx-auto">No cohorts match your selected search or filter criteria. Try resetting filters or searching for different topics.</p>
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedCategory("ALL");
+              setSelectedPriceFilter("ALL");
+            }}
+            className="px-4 py-2 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#00A86B] text-[#111827] text-xs font-semibold transition"
+          >
+            Reset Filters
+          </button>
+        </div>
+      )}
 
     </div>
   );

@@ -21,6 +21,34 @@ import confetti from 'canvas-confetti';
 import { useApp } from '../store/AppContext';
 import { FadeUp, FadeLeft, FadeRight } from '../components/Animation';
 
+const ProgramDetailSkeleton = ({ onNavigate }) => (
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-white animate-pulse">
+    <div className="w-36 h-5 bg-gray-200 rounded-lg"></div>
+    <div className="p-8 sm:p-10 rounded-3xl bg-[#F8FAF9] border border-[#E5E7EB] space-y-5">
+      <div className="flex gap-2">
+        <div className="w-28 h-6 bg-gray-200 rounded-full"></div>
+        <div className="w-20 h-6 bg-gray-200 rounded-full"></div>
+        <div className="w-24 h-6 bg-gray-200 rounded-full"></div>
+      </div>
+      <div className="w-3/4 h-10 bg-gray-200 rounded-xl"></div>
+      <div className="w-full h-16 bg-gray-200 rounded-xl"></div>
+      <div className="flex justify-between items-center pt-4">
+        <div className="w-40 h-8 bg-gray-200 rounded-lg"></div>
+        <div className="w-44 h-12 bg-[#00A86B]/20 rounded-xl"></div>
+      </div>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-2 space-y-6">
+        <div className="w-full h-44 bg-gray-100 rounded-2xl border border-gray-200"></div>
+        <div className="w-full h-64 bg-gray-100 rounded-2xl border border-gray-200"></div>
+      </div>
+      <div className="space-y-6">
+        <div className="w-full h-72 bg-gray-100 rounded-2xl border border-gray-200"></div>
+      </div>
+    </div>
+  </div>
+);
+
 export const ProgramDetailPage = ({ programId, onNavigate }) => {
   const { programs, registerForProgram, enrolledProgramIds, trackAnalyticsEvent } = useApp();
   const [openWeekIdx, setOpenWeekIdx] = useState(0);
@@ -28,7 +56,12 @@ export const ProgramDetailPage = ({ programId, onNavigate }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [confirmedRegData, setConfirmedRegData] = useState(null);
 
-  const program = (programs || []).find(p => p.id === programId) || programs?.[0];
+  const safePrograms = Array.isArray(programs) ? programs : [];
+  const program = safePrograms.find(p => p.id === programId);
+
+  if (!program && safePrograms.length === 0) {
+    return <ProgramDetailSkeleton onNavigate={onNavigate} />;
+  }
 
   if (!program) {
     return (

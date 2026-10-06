@@ -4,7 +4,6 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { AuthModal } from './components/AuthModal';
 import { PageTransition } from './components/Animation';
-import { SupportDeskModal } from './components/SupportDeskModal';
 import { SupportDeskAdmin } from './components/SupportDeskAdmin';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -54,11 +53,11 @@ function AppContent() {
 
   // Sync auth modal with path & redirect authenticated users away from /login & /register
   useEffect(() => {
-    // If user is already authenticated and visits /login or /register, redirect to /dashboard cleanly
+    // If user is already authenticated and visits /login or /register, redirect to / cleanly
     if (authStatus === 'AUTHENTICATED' && (currentPath === '/login' || currentPath === '/register')) {
       setAuthModalOpen(false);
-      window.history.replaceState({}, '', '/dashboard');
-      setCurrentPath('/dashboard');
+      window.history.replaceState({}, '', '/');
+      setCurrentPath('/');
       return;
     }
 
@@ -213,11 +212,7 @@ function AppContent() {
     }
 
     if (currentPath === '/contact') {
-      return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <SupportDeskAdmin onNavigate={navigate} />
-        </div>
-      );
+      return <HomePage onNavigate={navigate} />;
     }
 
     // 10. Admin Dashboard & Subroutes (Strictly Role Protected)
@@ -250,12 +245,14 @@ function AppContent() {
       );
     }
 
-    // 11. Support Desk Management Console (Direct Route)
+    // 11. Support Desk Management Console (Protected Route for Staff)
     if (currentPath === '/support-desk' || currentPath === '/support') {
       return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <SupportDeskAdmin onNavigate={navigate} />
-        </div>
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <SupportDeskAdmin onNavigate={navigate} />
+          </div>
+        </ProtectedRoute>
       );
     }
 
@@ -309,14 +306,6 @@ function AppContent() {
           setAuthModalOpen(false);
           // Use replace: true so /login or /register is replaced in history
           navigate('/dashboard', { replace: true });
-        }}
-      />
-
-      {/* Personalized PharmNexia Support Desk Floating Widget */}
-      <SupportDeskModal 
-        onOpenAuth={(mode) => {
-          setAuthModalMode(mode);
-          setAuthModalOpen(true);
         }}
       />
     </div>

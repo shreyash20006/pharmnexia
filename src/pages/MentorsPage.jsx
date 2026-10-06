@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
@@ -21,7 +21,7 @@ import { MentorApplicationModal } from '../components/MentorApplicationModal';
 import { ScrollReveal, FadeUp, FadeLeft, FadeRight } from '../components/Animation';
 
 export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
-  const { mentors, addMentor, currentUser } = useApp();
+  const { mentors = [], addMentor, currentUser } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("ALL");
@@ -42,28 +42,38 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
   const mentorTypes = ["ALL", "Faculty", "Alumni", "Industry", "Researchers", "Exam/Entrance Mentors"];
   const priceModels = ["ALL", "Free / Volunteer", "Paid / Honorarium"];
 
-  const filteredMentors = mentors.filter(m => {
-    const matchesSearch = 
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.currentRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.currentOrg.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.expertise.some(e => e.toLowerCase().includes(searchQuery.toLowerCase()));
+  const safeMentors = Array.isArray(mentors) ? mentors : [];
+
+  const filteredMentors = safeMentors.filter(m => {
+    if (!m) return false;
+    const name = (m.name || '').toLowerCase();
+    const currentRole = (m.currentRole || '').toLowerCase();
+    const currentOrg = (m.currentOrg || '').toLowerCase();
+    const expertiseList = Array.isArray(m.expertise) ? m.expertise : [];
+    const query = searchQuery.toLowerCase().trim();
+
+    const matchesSearch = !query ||
+      name.includes(query) ||
+      currentRole.includes(query) ||
+      currentOrg.includes(query) ||
+      expertiseList.some(e => typeof e === 'string' && e.toLowerCase().includes(query));
 
     const matchesType = selectedType === "ALL" || m.mentorType === selectedType;
-    const matchesPath = selectedCareerPath === "ALL" || m.careerPathSlugs?.includes(selectedCareerPath);
+    const matchesPath = selectedCareerPath === "ALL" || (Array.isArray(m.careerPathSlugs) && m.careerPathSlugs.includes(selectedCareerPath));
     
     let matchesPrice = true;
+    const price = Number(m.price30) || 0;
     if (selectedPriceModel === "Free / Volunteer") {
-      matchesPrice = m.price30 === 0;
+      matchesPrice = price === 0;
     } else if (selectedPriceModel === "Paid / Honorarium") {
-      matchesPrice = m.price30 > 0;
+      matchesPrice = price > 0;
     }
 
     return matchesSearch && matchesType && matchesPath && matchesPrice;
   }).sort((a, b) => {
-    if (sortBy === "rating") return b.rating - a.rating;
-    if (sortBy === "sessions") return b.sessionsCompleted - a.sessionsCompleted;
-    if (sortBy === "priceAsc") return a.price30 - b.price30;
+    if (sortBy === "rating") return (Number(b?.rating) || 0) - (Number(a?.rating) || 0);
+    if (sortBy === "sessions") return (Number(b?.sessionsCompleted) || 0) - (Number(a?.sessionsCompleted) || 0);
+    if (sortBy === "priceAsc") return (Number(a?.price30) || 0) - (Number(b?.price30) || 0);
     return 0;
   });
 
@@ -233,7 +243,7 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
 
                   {/* Expertise Badges */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {mentor.expertise.slice(0, 3).map((exp, eIdx) => (
+                    {(Array.isArray(mentor.expertise) ? mentor.expertise : []).slice(0, 3).map((exp, eIdx) => (
                       <span 
                         key={eIdx}
                         className="px-2.5 py-0.5 rounded-md text-[11.5px] font-medium bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB]"
@@ -241,7 +251,7 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
                         {exp}
                       </span>
                     ))}
-                    {mentor.expertise.length > 3 && (
+                    {Array.isArray(mentor.expertise) && mentor.expertise.length > 3 && (
                       <span className="text-[11.5px] text-[#667085] self-center">
                         +{mentor.expertise.length - 3} more
                       </span>
@@ -254,11 +264,11 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
                   <div className="flex items-center justify-between text-[#667085]">
                     <div className="flex items-center gap-1 font-bold text-[#101828]">
                       <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span>{mentor.rating}</span>
-                      <span className="text-[#667085] font-normal">({mentor.reviewCount} reviews)</span>
+                      <span>{mentor.rating || 5.0}</span>
+                      <span className="text-[#667085] font-normal">({mentor.reviewCount || 0} reviews)</span>
                     </div>
                     <span className="font-mono text-[12px] text-[#667085]">
-                      {mentor.sessionsCompleted} sessions completed
+                      {mentor.sessionsCompleted || 0} sessions completed
                     </span>
                   </div>
 
@@ -266,7 +276,7 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
                     <div>
                       <div className="text-[10px] text-[#667085] uppercase font-mono">30 Min Session</div>
                       <div className="font-extrabold text-[#101828] text-[15.5px] font-heading">
-                        {mentor.price30 === 0 ? (
+                        {Number(mentor.price30) === 0 ? (
                           <span className="text-[#087A52]">Free Session</span>
                         ) : (
                           <span>₹{mentor.price30}</span>
@@ -295,7 +305,7 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
             </ScrollReveal>
           ))}
         </div>
-      ) : mentors.length === 0 ? (
+      ) : safeMentors.length === 0 ? (
         /* Empty state when NO mentors are registered in database */
         <div className="p-12 sm:p-16 text-center bg-[#F8FAF9] rounded-3xl border border-[#E5E7EB] max-w-2xl mx-auto space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center mx-auto">
@@ -304,8 +314,8 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
           <h2 className="text-xl font-bold text-[#101828] font-heading">
             Verified Mentor Directory
           </h2>
-          <p className="text-xs text-[#667085] leading-relaxed max-w-md mx-auto">
-            We are actively onboarding verified pharmacy alumni, industry specialists, and faculty members. Are you a pharmacy practitioner interested in guiding students?
+          <p className="text-sm text-[#667085] leading-relaxed max-w-md mx-auto">
+            No mentors are available yet. New mentors are being verified. Check back soon.
           </p>
           <div className="pt-2 flex items-center justify-center gap-3">
             <button

@@ -18,13 +18,44 @@ import { useApp } from '../store/AppContext';
 import { BookingModal } from '../components/BookingModal';
 import { FadeUp, FadeLeft, FadeRight } from '../components/Animation';
 
+const MentorProfileSkeleton = ({ onNavigate }) => (
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-white animate-pulse">
+    <div className="w-36 h-5 bg-gray-200 rounded-lg"></div>
+    <div className="p-8 rounded-3xl bg-[#F8FAF9] border border-[#E5E7EB] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gray-200"></div>
+        <div className="space-y-2.5">
+          <div className="w-48 h-8 bg-gray-200 rounded-xl"></div>
+          <div className="w-36 h-5 bg-gray-200 rounded-lg"></div>
+          <div className="w-32 h-4 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+      <div className="w-48 h-24 bg-gray-200 rounded-2xl"></div>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="lg:col-span-2 space-y-6">
+        <div className="w-full h-40 bg-gray-100 rounded-2xl border border-gray-200"></div>
+        <div className="w-full h-48 bg-gray-100 rounded-2xl border border-gray-200"></div>
+      </div>
+      <div className="space-y-6">
+        <div className="w-full h-64 bg-gray-100 rounded-2xl border border-gray-200"></div>
+      </div>
+    </div>
+  </div>
+);
+
 export const MentorProfilePage = ({ mentorId, onNavigate }) => {
   const { mentors } = useApp();
   const [selectedSessionDuration, setSelectedSessionDuration] = useState(30);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
-  // Find mentor by id
-  const mentor = mentors.find(m => m.id === mentorId);
+  // Find mentor by id safely
+  const safeMentors = Array.isArray(mentors) ? mentors : [];
+  const mentor = safeMentors.find(m => m.id === mentorId);
+
+  if (!mentor && safeMentors.length === 0) {
+    return <MentorProfileSkeleton onNavigate={onNavigate} />;
+  }
 
   if (!mentor) {
     return (

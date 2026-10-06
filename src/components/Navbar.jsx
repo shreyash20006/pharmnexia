@@ -44,7 +44,6 @@ export const Navbar = ({ currentPath, onNavigate }) => {
   const secondaryLinks = [
     { label: 'Opportunities', path: '/opportunities', icon: Briefcase, desc: 'Internships, Jobs & Fellowships' },
     { label: 'About', path: '/about', icon: Info, desc: 'Our Mission & Academic Council' },
-    { label: 'Contact', path: '/contact', icon: Mail, desc: 'Student Help & Institutional Desk' },
     { label: 'Become a Mentor', path: '/become-a-mentor', icon: UserCheck, desc: 'Guide next-gen pharmacy aspirants' },
   ];
 
