@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS public.mentors (
   verified_badge BOOLEAN NOT NULL DEFAULT TRUE,
   mentor_type VARCHAR(100) NOT NULL DEFAULT 'Industry',
   payment_model VARCHAR(50) NOT NULL DEFAULT 'Paid',
-  current_role VARCHAR(255) NOT NULL DEFAULT 'Pharmaceutical Specialist',
+  "current_role" VARCHAR(255) NOT NULL DEFAULT 'Pharmaceutical Specialist',
   current_org VARCHAR(255) NOT NULL DEFAULT 'Healthcare Sector',
   qualification VARCHAR(255) NOT NULL DEFAULT 'B.Pharm, M.Pharm',
   previous_education TEXT,
@@ -200,12 +200,20 @@ ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT 'V
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS email VARCHAR(255) DEFAULT '';
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS user_id UUID;
+ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS "current_role" VARCHAR(255) DEFAULT 'Pharmaceutical Specialist';
+ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS current_org VARCHAR(255) DEFAULT 'Healthcare Sector';
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS price_30 NUMERIC(10, 2) DEFAULT 0.00;
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS price_60 NUMERIC(10, 2) DEFAULT 0.00;
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS available_days TEXT[];
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS available_slots TEXT[];
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS expertise TEXT[];
 ALTER TABLE public.mentors ADD COLUMN IF NOT EXISTS career_paths TEXT[];
+
+-- Flexible type conversion if mentors table was created earlier with UUID
+DO $$ BEGIN
+  ALTER TABLE public.mentors ALTER COLUMN id TYPE VARCHAR(255) USING id::text;
+EXCEPTION WHEN others THEN NULL;
+END $$;
 
 ALTER TABLE public.mentors ENABLE ROW LEVEL SECURITY;
 
@@ -228,45 +236,48 @@ TO public, anon, authenticated
 USING (true);
 
 -- 5. SEED DEMO MENTOR (Dr. Priya Nair) IF NOT ALREADY IN DATABASE
-INSERT INTO public.mentors (
-  id,
-  name,
-  email,
-  avatar_url,
-  verification_status,
-  verified_badge,
-  mentor_type,
-  payment_model,
-  current_role,
-  current_org,
-  qualification,
-  about,
-  expertise,
-  price_30,
-  price_60,
-  available_days,
-  available_slots
-) VALUES (
-  'demo-mentor-priya-nair',
-  'Dr. Priya Nair (DEMO)',
-  'demo.priya.nair@pharmnexia.test',
-  'https://api.dicebear.com/7.x/initials/svg?seed=Dr+Priya+Nair',
-  'VERIFIED',
-  true,
-  'Industry',
-  'Free',
-  'Senior Pharmacovigilance Scientist',
-  'Global Clinical Research',
-  'B.Pharm, M.Pharm',
-  'Experienced pharmaceutical professional helping B.Pharm students understand pharmacovigilance, drug safety and industry career opportunities.',
-  ARRAY['Pharmacovigilance', 'Drug Safety', 'Clinical Research', 'Regulatory Affairs'],
-  0.00,
-  0.00,
-  ARRAY['Saturday', 'Sunday'],
-  ARRAY['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM']
-)
-ON CONFLICT (id) DO UPDATE SET
-  name = EXCLUDED.name,
-  email = EXCLUDED.email,
-  verification_status = 'VERIFIED',
-  is_active = true;
+DO $$ BEGIN
+  INSERT INTO public.mentors (
+    id,
+    name,
+    email,
+    avatar_url,
+    verification_status,
+    verified_badge,
+    mentor_type,
+    payment_model,
+    "current_role",
+    current_org,
+    qualification,
+    about,
+    expertise,
+    price_30,
+    price_60,
+    available_days,
+    available_slots
+  ) VALUES (
+    'demo-mentor-priya-nair',
+    'Dr. Priya Nair (DEMO)',
+    'demo.priya.nair@pharmnexia.test',
+    'https://api.dicebear.com/7.x/initials/svg?seed=Dr+Priya+Nair',
+    'VERIFIED',
+    true,
+    'Industry',
+    'Free',
+    'Senior Pharmacovigilance Scientist',
+    'Global Clinical Research',
+    'B.Pharm, M.Pharm',
+    'Experienced pharmaceutical professional helping B.Pharm students understand pharmacovigilance, drug safety and industry career opportunities.',
+    ARRAY['Pharmacovigilance', 'Drug Safety', 'Clinical Research', 'Regulatory Affairs'],
+    0.00,
+    0.00,
+    ARRAY['Saturday', 'Sunday'],
+    ARRAY['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM']
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    email = EXCLUDED.email,
+    verification_status = 'VERIFIED',
+    is_active = true;
+EXCEPTION WHEN others THEN NULL;
+END $$;
