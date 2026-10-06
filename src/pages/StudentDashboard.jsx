@@ -390,7 +390,11 @@ export const StudentDashboard = ({ onNavigate }) => {
                 {bookings.map(b => (
                   <div key={b.id} className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
                     <div className="flex items-center gap-3">
-                      <img src={b.mentorAvatar} alt={b.mentorName} className="w-12 h-12 rounded-xl object-cover border border-[#00A86B]" />
+                      <img 
+                        src={b.mentorAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(b.mentorName || 'Mentor')}`} 
+                        alt={b.mentorName} 
+                        className="w-12 h-12 rounded-xl object-cover border border-[#00A86B]" 
+                      />
                       <div>
                         <div className="font-bold text-[#101828] text-sm">{b.mentorName}</div>
                         <div className="text-[#667085]">{b.mentorRole}</div>

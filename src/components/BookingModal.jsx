@@ -51,12 +51,12 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
   const price = duration === 30 ? Number(mentor.price30) || 0 : Number(mentor.price60) || 0;
   const isFreeOrHonorarium = price === 0;
 
-  const handleConfirmPaymentAndBooking = () => {
+  const handleConfirmPaymentAndBooking = async () => {
     if (isFreeOrHonorarium) {
       // Free or Volunteer Mentorship: confirm directly
       setIsProcessing(true);
-      setTimeout(() => {
-        const booking = createBooking({
+      try {
+        const booking = await createBooking({
           mentorId: mentor.id,
           sessionDuration: duration,
           scheduledDate: calculatedDate,
@@ -81,7 +81,10 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
           spread: 60,
           origin: { y: 0.6 }
         });
-      }, 600);
+      } catch (err) {
+        console.error('Free session booking notice:', err);
+        setIsProcessing(false);
+      }
       return;
     }
 
@@ -104,32 +107,37 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
         scheduled_date: calculatedDate,
         scheduled_time: selectedSlot
       },
-      onSuccess: (response) => {
-        const booking = createBooking({
-          mentorId: mentor.id,
-          sessionDuration: duration,
-          scheduledDate: calculatedDate,
-          scheduledTime: selectedSlot,
-          notes: agendaNotes,
-          paymentAmount: price,
-          paymentId: response.razorpay_payment_id,
-          paymentGateway: 'RAZORPAY',
-          studentInfo: {
-            name: studentName || currentUser?.name || "Student Aspirant",
-            email: studentEmail || currentUser?.email || "",
-            college: studentCollege || currentUser?.college || ""
-          }
-        });
+      onSuccess: async (response) => {
+        try {
+          const booking = await createBooking({
+            mentorId: mentor.id,
+            sessionDuration: duration,
+            scheduledDate: calculatedDate,
+            scheduledTime: selectedSlot,
+            notes: agendaNotes,
+            paymentAmount: price,
+            paymentId: response.razorpay_payment_id,
+            paymentGateway: 'RAZORPAY',
+            studentInfo: {
+              name: studentName || currentUser?.name || "Student Aspirant",
+              email: studentEmail || currentUser?.email || "",
+              college: studentCollege || currentUser?.college || ""
+            }
+          });
 
-        setConfirmedBooking(booking);
-        setIsProcessing(false);
-        setStep(4);
+          setConfirmedBooking(booking);
+          setIsProcessing(false);
+          setStep(4);
 
-        confetti({
-          particleCount: 110,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+          confetti({
+            particleCount: 110,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        } catch (err) {
+          console.error('Razorpay session booking notice:', err);
+          setIsProcessing(false);
+        }
       },
       onDismiss: () => {
         setIsProcessing(false);

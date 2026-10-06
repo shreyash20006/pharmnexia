@@ -340,41 +340,43 @@ export const AppProvider = ({ children }) => {
       try {
         const { data, error } = await supabase
           .from('mentors')
-          .select(`
-            *,
-            profiles:user_id(full_name, email, avatar_url)
-          `)
-          .in('verification_status', ['VERIFIED', 'DEMO', 'PENDING']);
+          .select('*')
+          .order('created_at', { ascending: false });
 
         if (!error && data && data.length > 0 && isMounted) {
           const mapped = data.map(m => ({
             id: m.id,
-            name: m.profiles?.full_name || 'Verified Mentor',
-            email: m.profiles?.email || '',
-            avatarUrl: m.profiles?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.profiles?.full_name || 'Mentor')}`,
-            verificationStatus: 'verified',
-            verifiedBadge: true,
-            currentRole: m.current_role,
-            currentOrg: m.current_org,
-            qualification: m.qualification,
-            previousEducation: m.previous_education,
+            name: m.name || m.full_name || 'Verified Mentor',
+            email: m.email || '',
+            avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name || m.full_name || 'Mentor')}`,
+            verificationStatus: (m.verification_status || 'VERIFIED').toLowerCase(),
+            verifiedBadge: m.verified_badge !== false,
+            currentRole: m.current_role || m.role || 'Pharmaceutical Specialist',
+            currentOrg: m.current_org || m.organization || 'Healthcare Solutions',
+            qualification: m.qualification || 'B.Pharm, M.Pharm',
+            previousEducation: m.previous_education || '',
             mentorType: m.mentor_type || 'Alumni',
             paymentModel: m.payment_model || 'Free',
-            careerPathSlugs: m.career_paths || [],
-            expertise: m.expertise || [],
+            careerPathSlugs: Array.isArray(m.career_paths) ? m.career_paths : ['pharmacovigilance'],
+            expertise: Array.isArray(m.expertise) ? m.expertise : ['Career Guidance'],
             rating: Number(m.rating) || 5.0,
             reviewCount: Number(m.review_count) || 0,
             sessionsCompleted: Number(m.sessions_completed) || 0,
             sessionDuration: '30 / 60 min',
-            price30: Number(m.price_30) || 0,
-            price60: Number(m.price_60) || 0,
+            price30: Number(m.price_30 ?? m.price_30_min ?? 0),
+            price60: Number(m.price_60 ?? m.price_60_min ?? 0),
             about: m.about || '',
-            whatICanHelpWith: m.what_i_can_help_with || [],
-            availableDays: m.available_days || ['Saturday', 'Sunday'],
-            availableSlots: m.available_slots || ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
+            whatICanHelpWith: Array.isArray(m.what_i_can_help_with) ? m.what_i_can_help_with : [
+              'Career guidance and resume review',
+              'Interview preparation'
+            ],
+            availableDays: Array.isArray(m.available_days) ? m.available_days : ['Saturday', 'Sunday'],
+            availableSlots: Array.isArray(m.available_slots) ? m.available_slots : ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
             reviews: []
           }));
-          setMentors(mapped);
+
+          const hasDemo = mapped.some(m => m.id === DEMO_MENTOR_PRIYA.id);
+          setMentors(hasDemo ? mapped : [...mapped, DEMO_MENTOR_PRIYA]);
         }
       } catch (err) {
         console.warn('[PharmNexia] Database mentors fetch:', err);
@@ -388,6 +390,65 @@ export const AppProvider = ({ children }) => {
       subscription?.unsubscribe();
     };
   }, []);
+
+  // Fetch bookings from Supabase whenever user session changes
+  const fetchSupabaseBookings = async (user = currentUser) => {
+    if (!supabase || !isSupabaseConfigured) return;
+    try {
+      let query = supabase
+        .from('bookings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (user?.id) {
+        const isElevated = ['SUPER_ADMIN', 'ADMIN', 'DEVELOPER', 'MENTOR_MANAGER', 'CONTENT_MANAGER', 'SUPPORT', 'ANALYST'].includes(user.role);
+        if (!isElevated) {
+          // Regular student: fetch their own bookings by user id or student email
+          query = query.or(`student_id.eq.${user.id},student_email.eq.${user.email}`);
+        }
+      }
+
+      const { data, error } = await query;
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const mapped = data.map(b => ({
+          id: b.booking_code || b.id,
+          bookingCode: b.booking_code || b.id,
+          studentId: b.student_id || 'std',
+          studentPharmNexiaId: b.student_pharm_nexia_id || 'PHN-STU-001247',
+          studentName: b.student_name || 'Student Aspirant',
+          studentEmail: b.student_email || '',
+          studentCollege: b.student_college || '',
+          mentorId: b.mentor_id || b.mentor_id_text || 'mentor',
+          mentorName: b.mentor_name || 'Verified Mentor',
+          mentorRole: b.mentor_role || 'Career Mentor',
+          mentorAvatar: b.mentor_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(b.mentor_name || 'Mentor')}`,
+          scheduledDate: b.scheduled_date ? String(b.scheduled_date).split('T')[0] : 'Upcoming',
+          scheduledTime: b.scheduled_time || '07:00 PM - 07:30 PM',
+          sessionDuration: Number(b.session_duration_min) || 30,
+          status: b.status || 'CONFIRMED',
+          meetingLink: b.meeting_link || b.google_meet_link || `https://meet.pharmnexia.in/room/session-${(b.booking_code || b.id).toLowerCase()}`,
+          paymentAmount: Number(b.payment_amount) || 0,
+          paymentStatus: b.payment_status || (Number(b.payment_amount) > 0 ? 'PAID' : 'FREE_SESSION'),
+          paymentId: b.payment_id || 'CONFIRMED',
+          paymentGateway: b.payment_gateway || 'RAZORPAY',
+          notes: b.student_notes || b.notes || 'General career roadmap discussion',
+          createdAt: b.created_at || new Date().toISOString()
+        }));
+
+        setBookings(prev => {
+          const mapCodes = new Set(mapped.map(m => m.bookingCode));
+          const unSyncedLocal = prev.filter(p => !mapCodes.has(p.bookingCode));
+          return [...unSyncedLocal, ...mapped];
+        });
+      }
+    } catch (err) {
+      console.warn('[PharmNexia DB] Bookings fetch notice:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSupabaseBookings(currentUser);
+  }, [currentUser]);
 
   // Sync to LocalStorage
   useEffect(() => {
@@ -593,7 +654,7 @@ export const AppProvider = ({ children }) => {
   // ==============================================================================
   // BOOKING ACTIONS
   // ==============================================================================
-  const createBooking = ({ 
+  const createBooking = async ({ 
     mentorId, 
     sessionDuration, 
     scheduledDate, 
@@ -604,25 +665,35 @@ export const AppProvider = ({ children }) => {
     paymentId,
     paymentGateway = 'RAZORPAY'
   }) => {
-    const mentor = mentors.find(m => m.id === mentorId);
+    const mentor = mentors.find(m => m.id === mentorId) || {
+      id: mentorId,
+      name: 'Verified Mentor',
+      currentRole: 'Career Mentor',
+      avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent('Mentor')}`
+    };
     const newBookingId = formatBookingId(Date.now().toString());
     const amount = Number(paymentAmount) || 0;
     const resolvedPaymentId = paymentId || (amount > 0 ? `pay_rzp_${Date.now()}` : "FREE_SESSION");
+
+    const resolvedStudentName = studentInfo?.name || currentUser?.name || "Student Aspirant";
+    const resolvedStudentEmail = studentInfo?.email || currentUser?.email || "";
+    const resolvedStudentCollege = studentInfo?.college || currentUser?.college || "";
 
     const newBooking = {
       id: newBookingId,
       bookingCode: newBookingId,
       studentId: currentUser?.id || "guest-std",
       studentPharmNexiaId: currentUser?.pharmNexiaId || "PHN-STU-001247",
-      studentName: studentInfo?.name || currentUser?.name || "Student Aspirant",
-      studentEmail: studentInfo?.email || currentUser?.email || "",
-      mentorId: mentor?.id,
+      studentName: resolvedStudentName,
+      studentEmail: resolvedStudentEmail,
+      studentCollege: resolvedStudentCollege,
+      mentorId: mentor?.id || mentorId,
       mentorName: mentor?.name || "Verified Mentor",
       mentorRole: mentor?.currentRole || "Career Mentor",
       mentorAvatar: mentor?.avatarUrl || "",
       scheduledDate,
       scheduledTime,
-      sessionDuration: Number(sessionDuration),
+      sessionDuration: Number(sessionDuration) || 30,
       status: "CONFIRMED",
       meetingLink: `https://meet.pharmnexia.in/room/session-${newBookingId.toLowerCase()}`,
       paymentAmount: amount,
@@ -633,37 +704,94 @@ export const AppProvider = ({ children }) => {
       createdAt: new Date().toISOString()
     };
 
-    setBookings(prev => [newBooking, ...prev]);
+    // 1. Immediately update local state & LocalStorage
+    setBookings(prev => [newBooking, ...prev.filter(b => b.bookingCode !== newBookingId)]);
 
-    // Persist to Supabase database if configured
+    // 2. Persist to Supabase database if configured
     if (supabase && isSupabaseConfigured) {
-      supabase.from('bookings').insert({
-        booking_code: newBookingId,
-        student_id: currentUser?.id,
-        mentor_id: mentor?.id,
-        session_duration_min: Number(sessionDuration),
-        scheduled_date: scheduledDate,
-        scheduled_time: scheduledTime,
-        status: 'CONFIRMED',
-        student_notes: notes,
-        meeting_link: newBooking.meetingLink
-      }).then(({ error }) => {
-        if (error) console.warn('[PharmNexia DB] Booking insert notice:', error);
-      });
+      try {
+        const isValidUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+        const validStudentId = currentUser?.id && isValidUuid(currentUser.id) ? currentUser.id : null;
+        const validMentorId = mentor?.id && isValidUuid(mentor.id) ? mentor.id : null;
 
-      // Record to payments ledger table
-      if (amount > 0 && currentUser?.id) {
-        supabase.from('payments').insert({
-          student_id: currentUser.id,
-          amount: amount,
-          currency: 'INR',
-          status: 'COMPLETED',
-          gateway_name: paymentGateway,
-          gateway_payment_id: resolvedPaymentId,
-          gateway_signature_verified: true
-        }).then(({ error }) => {
-          if (error) console.warn('[PharmNexia DB] Payment record notice:', error);
+        const bookingPayload = {
+          booking_code: newBookingId,
+          session_duration_min: Number(sessionDuration) || 30,
+          scheduled_date: scheduledDate,
+          scheduled_time: scheduledTime,
+          status: 'CONFIRMED',
+          student_notes: notes || "General career roadmap discussion",
+          meeting_link: newBooking.meetingLink,
+          student_name: resolvedStudentName,
+          student_email: resolvedStudentEmail,
+          student_college: resolvedStudentCollege,
+          student_pharm_nexia_id: newBooking.studentPharmNexiaId,
+          mentor_name: newBooking.mentorName,
+          mentor_role: newBooking.mentorRole,
+          mentor_avatar: newBooking.mentorAvatar,
+          payment_amount: amount,
+          payment_status: amount > 0 ? "PAID" : "FREE_SESSION",
+          payment_id: resolvedPaymentId,
+          payment_gateway: amount > 0 ? paymentGateway : "NONE"
+        };
+
+        if (validStudentId) bookingPayload.student_id = validStudentId;
+        if (validMentorId) bookingPayload.mentor_id = validMentorId;
+        bookingPayload.mentor_id_text = mentor?.id || mentorId;
+
+        const { error: bookingErr } = await supabase.from('bookings').insert(bookingPayload);
+        if (bookingErr) {
+          console.warn('[PharmNexia DB] Extended booking insert notice:', bookingErr.message);
+          // Fallback to core columns if database has not yet received extended columns
+          const fallbackPayload = {
+            booking_code: newBookingId,
+            session_duration_min: Number(sessionDuration) || 30,
+            scheduled_date: scheduledDate,
+            scheduled_time: scheduledTime,
+            status: 'CONFIRMED',
+            student_notes: notes || "General career roadmap discussion",
+            meeting_link: newBooking.meetingLink
+          };
+          if (validStudentId) fallbackPayload.student_id = validStudentId;
+          if (validMentorId) fallbackPayload.mentor_id = validMentorId;
+          await supabase.from('bookings').insert(fallbackPayload);
+        }
+
+        // Record to payments ledger table
+        if (amount > 0) {
+          const paymentPayload = {
+            amount: amount,
+            currency: 'INR',
+            status: 'COMPLETED',
+            gateway_name: paymentGateway,
+            gateway_payment_id: resolvedPaymentId,
+            gateway_signature_verified: true,
+            booking_code: newBookingId,
+            student_name: resolvedStudentName,
+            student_email: resolvedStudentEmail
+          };
+          if (validStudentId) paymentPayload.student_id = validStudentId;
+          const { error: payErr } = await supabase.from('payments').insert(paymentPayload);
+          if (payErr) {
+            console.warn('[PharmNexia DB] Payment ledger insert notice:', payErr.message);
+          }
+        }
+
+        // Record audit log
+        await supabase.from('audit_logs').insert({
+          actor: resolvedStudentName,
+          action: 'MENTORSHIP_BOOKING_CREATED',
+          target_type: 'BOOKING',
+          target_id: newBookingId,
+          details: `Booked ${sessionDuration}m session with ${newBooking.mentorName} (${scheduledDate} at ${scheduledTime})`,
+          metadata: {
+            payment_amount: amount,
+            payment_id: resolvedPaymentId,
+            gateway: paymentGateway
+          }
         });
+      } catch (dbErr) {
+        console.warn('[PharmNexia DB] Booking persistence error:', dbErr);
       }
     }
 
@@ -1323,18 +1451,44 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-  const addMentor = (mentorData) => {
-    const newId = `mentor-${String(mentors.length + 1).padStart(2, '0')}`;
+  const addMentor = async (mentorData) => {
+    const newId = mentorData.id || `mentor-${Date.now()}`;
     const newMentor = {
       ...mentorData,
       id: newId,
-      verificationStatus: 'pending',
+      name: mentorData.name || 'Verified Mentor',
+      verificationStatus: mentorData.verificationStatus || 'pending',
       verifiedBadge: false,
       rating: 5.0,
       reviewCount: 0,
       sessionsCompleted: 0
     };
     setMentors(prev => [newMentor, ...prev]);
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        await supabase.from('mentors').insert({
+          id: newId,
+          name: newMentor.name,
+          email: newMentor.email || '',
+          current_role: newMentor.currentRole || 'Career Mentor',
+          current_org: newMentor.currentOrg || 'Healthcare Sector',
+          qualification: newMentor.qualification || 'B.Pharm, M.Pharm',
+          mentor_type: newMentor.mentorType || 'Industry',
+          about: newMentor.about || '',
+          expertise: Array.isArray(newMentor.expertise) ? newMentor.expertise : [],
+          verification_status: 'PENDING',
+          verified_badge: false,
+          price_30: Number(newMentor.price30) || 0,
+          price_60: Number(newMentor.price60) || 0,
+          payment_model: newMentor.paymentModel || 'Free',
+          is_active: true
+        });
+      } catch (err) {
+        console.warn('[PharmNexia DB] Add mentor to Supabase notice:', err);
+      }
+    }
+    return newMentor;
   };
 
   const addNotification = ({ title, message, type = "SYSTEM", link = null }) => {
@@ -1423,6 +1577,7 @@ export const AppProvider = ({ children }) => {
         issueCertificate,
         updateMentorStatus,
         addMentor,
+        fetchSupabaseBookings,
         addNotification,
         markAllNotificationsRead,
         addAuditLog

@@ -18,7 +18,7 @@ import { useApp } from '../store/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const MentorApplicationModal = ({ isOpen, onClose, onSuccess }) => {
-  const { currentUser, addNotification } = useApp();
+  const { currentUser, addNotification, addMentor } = useApp();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -112,7 +112,30 @@ export const MentorApplicationModal = ({ isOpen, onClose, onSuccess }) => {
     setIsLoading(true);
 
     try {
-      // 1. If Supabase is connected, record application in database audit logs
+      // 1. Add mentor to AppContext and Supabase mentors table
+      if (addMentor) {
+        await addMentor({
+          name: formData.name,
+          email: formData.email,
+          currentRole: formData.currentRole,
+          currentOrg: formData.currentOrg,
+          qualification: formData.qualification,
+          mentorType: formData.mentorType,
+          about: formData.about,
+          expertise: formData.expertise ? formData.expertise.split(',').map(s => s.trim()) : [],
+          linkedinUrl: formData.linkedinUrl,
+          avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(formData.name)}`,
+          verificationStatus: 'pending',
+          verifiedBadge: false,
+          price30: 0,
+          price60: 0,
+          paymentModel: 'Free',
+          availableDays: ["Saturday", "Sunday"],
+          availableSlots: ["06:00 PM - 06:30 PM", "07:00 PM - 07:30 PM"]
+        });
+      }
+
+      // 2. If Supabase is connected, record application in database audit logs
       if (supabase && isSupabaseConfigured) {
         try {
           await supabase.from('audit_logs').insert({
@@ -133,7 +156,7 @@ export const MentorApplicationModal = ({ isOpen, onClose, onSuccess }) => {
         }
       }
 
-      // 2. Add in-app notification
+      // 3. Add in-app notification
       if (addNotification) {
         addNotification({
           title: "Mentor Application Received",
