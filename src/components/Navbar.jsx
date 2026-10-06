@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, ChevronDown, LogOut, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { Award, ChevronDown, LogOut, LayoutDashboard, ShieldCheck, Bell, Menu, X, User } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { PharmNexiaLogo } from './PharmNexiaLogo';
 
@@ -65,7 +65,7 @@ export const Navbar = ({ currentPath, onNavigate }) => {
 
             <div className="relative flex items-center">
               <button onClick={() => setNotifDropdownOpen(!notifDropdownOpen)} className="p-2 rounded-lg border border-[#E5E7EB] text-[#667085] hover:text-[#111827] hover:bg-[#F8FAF9] transition-colors relative flex items-center justify-center" aria-label="Notifications">
-                <ShieldCheck className="w-4 h-4" />
+                <Bell className="w-4 h-4 text-[#344054]" />
                 {unreadNotifs > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#00A86B]"></span>}
               </button>
 
@@ -134,22 +134,60 @@ export const Navbar = ({ currentPath, onNavigate }) => {
             )}
           </div>
 
-          <div className="lg:hidden flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
-            <button onClick={() => handleNav('/verify-certificate')} className="w-11 h-11 rounded-xl bg-[#F8FAF9] text-[#00A86B] border border-[#E5E7EB] hover:border-[#00A86B] hover:bg-white flex items-center justify-center transition-all" title="Verify Certificate Authenticity" aria-label="Verify Certificate">
-              <Award className="w-5 h-5 text-[#00A86B]" />
+          <div className="lg:hidden flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            {currentUser ? (
+              <button 
+                onClick={() => handleNav('/dashboard')} 
+                className="flex items-center gap-1.5 p-1 rounded-xl border border-[#00A86B]/30 bg-[#E8F8F1] transition-all"
+                title="My Dashboard"
+                aria-label="My Dashboard"
+              >
+                <img 
+                  src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                  alt={currentUser.name} 
+                  className="w-8 h-8 rounded-lg object-cover border border-[#00A86B]" 
+                />
+              </button>
+            ) : (
+              <button 
+                onClick={() => handleNav('/auth?mode=login')} 
+                className="px-3 py-1.5 rounded-xl border border-[#00A86B]/40 bg-[#E8F8F1] hover:bg-[#00A86B] hover:text-white text-[#087A52] text-xs font-bold transition-all shadow-xs"
+              >
+                Log In
+              </button>
+            )}
+
+            <button 
+              onClick={() => handleNav('/verify-certificate')} 
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F8FAF9] text-[#00A86B] border border-[#E5E7EB] hover:border-[#00A86B] hover:bg-white flex items-center justify-center transition-all" 
+              title="Verify Certificate Authenticity" 
+              aria-label="Verify Certificate"
+            >
+              <Award className="w-4 h-4 text-[#00A86B]" />
             </button>
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="w-11 h-11 rounded-xl bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB] hover:border-[#00A86B] hover:bg-white flex items-center justify-center transition-all" aria-label="Toggle menu">
-              {mobileMenuOpen ? <ShieldCheck className="w-6 h-6 text-[#111827]" /> : <ShieldCheck className="w-6 h-6 text-[#111827]" />}
+
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F8FAF9] text-[#111827] border border-[#E5E7EB] hover:border-[#00A86B] hover:bg-white flex items-center justify-center transition-all" 
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5 text-[#111827]" /> : <Menu className="w-5 h-5 text-[#111827]" />}
             </button>
           </div>
         </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-[#E5E7EB] px-4 pt-3 pb-6 space-y-3">
+        <div className="lg:hidden bg-white border-b border-[#E5E7EB] px-4 pt-3 pb-6 space-y-4 shadow-lg animate-fadeIn">
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-[#E5E7EB]">
             {navLinks.map((link) => (
-              <button key={link.path} onClick={() => handleNav(link.path)} className={`px-3 py-2 rounded-xl text-xs text-left font-medium transition-colors ${currentPath === link.path ? 'bg-[#E8F8F1] text-[#00A86B] font-semibold' : 'text-[#344054] hover:bg-[#F8FAF9]'}`}>
+              <button 
+                key={link.path} 
+                onClick={() => handleNav(link.path)} 
+                className={`px-3.5 py-2.5 rounded-xl text-xs text-left font-semibold transition-colors ${
+                  currentPath === link.path ? 'bg-[#E8F8F1] text-[#00A86B] font-bold' : 'text-[#344054] hover:bg-[#F8FAF9]'
+                }`}
+              >
                 {link.label}
               </button>
             ))}
@@ -158,33 +196,43 @@ export const Navbar = ({ currentPath, onNavigate }) => {
           <div className="pt-1">
             {currentUser ? (
               <div className="space-y-2">
-                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB]">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB]">
                   <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-lg border border-[#00A86B] object-cover" />
-                  <div>
-                    <div className="text-sm font-bold text-[#111827]">{currentUser.name}</div>
-                    <div className="text-xs text-[#00A86B]">{currentUser.email}</div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-[#111827] truncate">{currentUser.name}</div>
+                    <div className="text-xs text-[#667085] truncate">{currentUser.email}</div>
                   </div>
                 </div>
 
-                <button onClick={() => handleNav('/dashboard')} className="w-full text-left px-3.5 py-2.5 rounded-xl bg-[#E8F8F1] text-[#00A86B] font-medium text-xs flex items-center gap-2">
+                <button onClick={() => handleNav('/dashboard')} className="w-full text-left px-3.5 py-2.5 rounded-xl bg-[#E8F8F1] text-[#00A86B] font-bold text-xs flex items-center gap-2">
                   <LayoutDashboard className="w-4 h-4" />
-                  <span>Open Dashboard</span>
+                  <span>Open Student Dashboard</span>
                 </button>
 
-                <button onClick={() => handleNav('/profile')} className="w-full text-left px-3.5 py-2.5 rounded-xl bg-[#F8FAF9] text-[#111827] font-medium text-xs flex items-center gap-2">
+                <button onClick={() => handleNav('/profile')} className="w-full text-left px-3.5 py-2.5 rounded-xl bg-[#F8FAF9] text-[#111827] font-semibold text-xs flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-[#00A86B]" />
-                  <span>Profile</span>
+                  <span>My Profile</span>
                 </button>
 
-                <button onClick={() => { logoutUser(); setMobileMenuOpen(false); }} className="w-full text-left px-3.5 py-2 text-rose-600 text-xs flex items-center gap-2">
+                <button onClick={() => { logoutUser(); setMobileMenuOpen(false); }} className="w-full text-left px-3.5 py-2 text-rose-600 font-semibold text-xs flex items-center gap-2">
                   <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-2 pt-1">
-                <button onClick={() => handleNav('/auth?mode=login')} className="w-full py-2.5 rounded-xl border border-[#E5E7EB] text-[#111827] text-xs font-medium hover:border-[#00A86B]">Log In</button>
-                <button onClick={() => handleNav('/auth?mode=signup')} className="w-full py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-medium text-xs shadow-sm">Get Started Free</button>
+              <div className="flex flex-col gap-2.5 pt-1">
+                <button 
+                  onClick={() => handleNav('/auth?mode=login')} 
+                  className="w-full py-2.5 rounded-xl border border-[#E5E7EB] text-[#111827] text-xs font-semibold hover:border-[#00A86B] transition-colors"
+                >
+                  Log In
+                </button>
+                <button 
+                  onClick={() => handleNav('/auth?mode=signup')} 
+                  className="w-full py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition-colors"
+                >
+                  Get Started Free
+                </button>
               </div>
             )}
           </div>

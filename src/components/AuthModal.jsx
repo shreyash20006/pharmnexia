@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Mail, 
@@ -7,8 +7,8 @@ import {
   GraduationCap, 
   ArrowRight, 
   ShieldCheck, 
-  AlertCircle,
-  Loader2
+  AlertCircle, 
+  Loader2 
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { PharmNexiaLogo } from './PharmNexiaLogo';
@@ -18,6 +18,10 @@ export const AuthModal = ({ isOpen, initialMode = 'login', onClose, onSuccess })
 
   const { loginWithGoogle, loginWithEmail, signupWithEmail, isSupabaseConfigured } = useApp();
   const [mode, setMode] = useState(initialMode); // 'login' | 'signup'
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   // Form fields (Clean - NO dummy credentials)
   const [name, setName] = useState('');
