@@ -58,6 +58,21 @@ function AppContent() {
       setAuthModalMode('signup');
       setAuthModalOpen(true);
     }
+
+    // Handle Google Calendar OAuth Return
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('calendar') === 'connected') {
+      const email = params.get('email') || '';
+      const connectionData = {
+        isConnected: true,
+        googleAccountEmail: email,
+        calendarId: 'primary',
+        syncStatus: 'SYNCED',
+        connectedAt: new Date().toISOString()
+      };
+      localStorage.setItem('pharmnexia_mentor_cal_connection', JSON.stringify(connectionData));
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, [currentPath]);
 
   const navigate = (path) => {

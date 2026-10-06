@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { CertificateViewer } from '../components/CertificateViewer';
+import { MentorCalendarManager } from '../components/MentorCalendarManager';
 
 export const StudentDashboard = ({ onNavigate }) => {
   const { 
@@ -110,6 +111,7 @@ export const StudentDashboard = ({ onNavigate }) => {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'calendar', label: 'Mentor Google Calendar', icon: Calendar, badge: 'Meet Sync' },
     { id: 'mentorships', label: 'My Mentorships', icon: Users, badge: bookings.length },
     { id: 'programs', label: 'My Programs', icon: BookOpen, badge: enrolledProgramIds.length },
     { id: 'certificates', label: 'My Certificates', icon: Award, badge: studentCertificates.length },
@@ -202,6 +204,11 @@ export const StudentDashboard = ({ onNavigate }) => {
         {/* Content Panel */}
         <main className="lg:col-span-3 space-y-6">
           
+          {/* TAB: MENTOR GOOGLE CALENDAR & MEET INTEGRATION */}
+          {activeTab === 'calendar' && (
+            <MentorCalendarManager onNavigate={onNavigate} />
+          )}
+
           {/* TAB: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
