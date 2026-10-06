@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 -- Safely convert profiles.role to VARCHAR(50) if it is currently user_role enum
 DO $$ 
 BEGIN
@@ -78,6 +81,9 @@ CREATE TABLE IF NOT EXISTS public.staff_accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.staff_accounts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.staff_accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS idx_staff_email ON public.staff_accounts(email);
 CREATE INDEX IF NOT EXISTS idx_staff_role ON public.staff_accounts(role);
@@ -221,6 +227,9 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow insert audit logs" ON public.audit_logs;
@@ -289,6 +298,25 @@ CREATE TABLE IF NOT EXISTS public.programs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure all necessary columns exist on pre-existing public.programs table
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS slug VARCHAR(150);
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS short_title VARCHAR(150);
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT 'Masterclass';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'PUBLISHED';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS level VARCHAR(50) DEFAULT 'Beginner';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT 'Online via Google Meet';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'INR';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS cta_text VARCHAR(100) DEFAULT 'Get Access';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS google_meet_url TEXT;
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS google_event_id VARCHAR(255);
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS meet_status VARCHAR(20) DEFAULT 'UPCOMING';
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS lead_mentor VARCHAR(255);
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS mentor_role VARCHAR(255);
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS organization VARCHAR(255);
+ALTER TABLE public.programs ADD COLUMN IF NOT EXISTS skills TEXT[];
 
 ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
 
