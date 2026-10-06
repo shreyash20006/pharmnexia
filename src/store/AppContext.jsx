@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { MENTORS } from '../data/mentorsData';
 import { PROGRAMS, INITIAL_PROGRAM_ANALYTICS, INITIAL_PROGRAM_REGISTRATIONS } from '../data/programsData';
 import { OPPORTUNITIES } from '../data/opportunitiesData';
@@ -35,7 +35,16 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [authLoading, setAuthLoading] = useState(true);
+  // Auth & Profile Lifecycle State Machine
+  // authStatus: 'AUTH_LOADING' | 'AUTHENTICATED' | 'UNAUTHENTICATED'
+  const [authStatus, setAuthStatus] = useState('AUTH_LOADING');
+  // profileStatus: 'PROFILE_LOADING' | 'PROFILE_LOADED' | 'PROFILE_ERROR'
+  const [profileStatus, setProfileStatus] = useState('PROFILE_LOADED');
+  const [profileError, setProfileError] = useState(null);
+
+  // Backwards compatibility boolean
+  const authLoading = authStatus === 'AUTH_LOADING';
+  const activeProfileLoadRef = useRef(null);
 
   // 2. Mentors State (Empty default / Loaded from Supabase DB)
   const [mentors, setMentors] = useState(() => {
@@ -168,11 +177,16 @@ export const AppProvider = ({ children }) => {
   };
 
   // Helper to resolve elevated roles from Supabase database (staff_accounts & profiles)
+  // Protected with a 6-second timeout to prevent infinite hangs
   const resolveUserWithDbRole = async (user) => {
     const base = mapSupabaseUser(user);
     if (!supabase || !isSupabaseConfigured || !user?.email) return base;
 
-    try {
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Profile resolution timeout')), 6000)
+    );
+
+    const queryPromise = (async () => {
       // 1. Check if user is registered in staff_accounts
       const { data: staff, error: staffErr } = await supabase
         .from('staff_accounts')
@@ -207,45 +221,121 @@ export const AppProvider = ({ children }) => {
           bio: profile.bio || base.bio
         };
       }
-    } catch (err) {
-      console.warn('[PharmNexia DB] User role resolution notice:', err);
-    }
 
-    return base;
+      return base;
+    })();
+
+    try {
+      return await Promise.race([queryPromise, timeoutPromise]);
+    } catch (err) {
+      console.warn('[PharmNexia DB] User role resolution notice (fallback to base):', err.message || err);
+      return base;
+    }
   };
 
-  // Sync Supabase Auth & Real DB Mentors
+  // Dedicated profile loader with race-condition guard
+  const loadUserProfile = async (authUser) => {
+    if (!authUser) {
+      setCurrentUser(null);
+      setProfileStatus('PROFILE_LOADED');
+      setProfileError(null);
+      return null;
+    }
+
+    const loadId = Date.now();
+    activeProfileLoadRef.current = loadId;
+    setProfileStatus('PROFILE_LOADING');
+    setProfileError(null);
+
+    try {
+      const resolved = await resolveUserWithDbRole(authUser);
+      if (activeProfileLoadRef.current === loadId) {
+        setCurrentUser(resolved);
+        setProfileStatus('PROFILE_LOADED');
+      }
+      return resolved;
+    } catch (err) {
+      if (activeProfileLoadRef.current === loadId) {
+        console.warn('[PharmNexia Profile] Error loading profile (recovering with base):', err);
+        const fallback = mapSupabaseUser(authUser);
+        setCurrentUser(fallback);
+        setProfileStatus('PROFILE_LOADED');
+      }
+      return mapSupabaseUser(authUser);
+    }
+  };
+
+  const retryProfileLoad = async () => {
+    if (supabase) {
+      setProfileStatus('PROFILE_LOADING');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await loadUserProfile(session.user);
+        } else {
+          setProfileStatus('PROFILE_LOADED');
+        }
+      } catch (err) {
+        setProfileStatus('PROFILE_ERROR');
+        setProfileError('Failed to refresh session from server.');
+      }
+    }
+  };
+
+  // Sync Supabase Auth (Decoupled, zero deadlocks) & Mentors
   useEffect(() => {
     if (!supabase) {
-      setAuthLoading(false);
+      setAuthStatus(currentUser ? 'AUTHENTICATED' : 'UNAUTHENTICATED');
+      setProfileStatus('PROFILE_LOADED');
       return;
     }
 
-    // A. Check active Supabase session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const appUser = await resolveUserWithDbRole(session.user);
-        setCurrentUser(appUser);
-      }
-      setAuthLoading(false);
-    }).catch(err => {
-      console.warn('[PharmNexia Auth] Session check error:', err);
-      setAuthLoading(false);
-    });
+    let isMounted = true;
 
-    // B. Subscribe to Auth state changes (Google OAuth redirect, Login, Logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // A. Check active Supabase session on initial mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
       if (session?.user) {
-        const appUser = await resolveUserWithDbRole(session.user);
-        setCurrentUser(appUser);
+        setAuthStatus('AUTHENTICATED');
+        loadUserProfile(session.user);
       } else {
+        setAuthStatus('UNAUTHENTICATED');
         setCurrentUser(null);
         localStorage.removeItem('pharmnexia_user');
+        setProfileStatus('PROFILE_LOADED');
       }
-      setAuthLoading(false);
+    }).catch(err => {
+      if (!isMounted) return;
+      console.warn('[PharmNexia Auth] Session check error:', err);
+      setAuthStatus('UNAUTHENTICATED');
+      setProfileStatus('PROFILE_LOADED');
     });
 
-    // C. Fetch real verified mentors from Supabase database
+    // B. Subscribe to Auth state changes (Decoupled with setTimeout to prevent lockups)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      if (event === 'SIGNED_OUT' || !session) {
+        setAuthStatus('UNAUTHENTICATED');
+        setCurrentUser(null);
+        localStorage.removeItem('pharmnexia_user');
+        setProfileStatus('PROFILE_LOADED');
+        setProfileError(null);
+        return;
+      }
+
+      if (session?.user) {
+        setAuthStatus('AUTHENTICATED');
+        // Decouple async DB operations from the synchronous auth callback thread
+        setTimeout(() => {
+          if (isMounted) {
+            loadUserProfile(session.user);
+          }
+        }, 0);
+      }
+    });
+
+    // C. Fetch verified mentors from Supabase database independently
     const fetchSupabaseMentors = async () => {
       try {
         const { data, error } = await supabase
@@ -256,7 +346,7 @@ export const AppProvider = ({ children }) => {
           `)
           .in('verification_status', ['VERIFIED', 'DEMO', 'PENDING']);
 
-        if (!error && data && data.length > 0) {
+        if (!error && data && data.length > 0 && isMounted) {
           const mapped = data.map(m => ({
             id: m.id,
             name: m.profiles?.full_name || 'Verified Mentor',
@@ -294,6 +384,7 @@ export const AppProvider = ({ children }) => {
     fetchSupabaseMentors();
 
     return () => {
+      isMounted = false;
       subscription?.unsubscribe();
     };
   }, []);
@@ -404,6 +495,16 @@ export const AppProvider = ({ children }) => {
     });
 
     if (error) throw error;
+
+    if (data?.user) {
+      setAuthStatus('AUTHENTICATED');
+      // Set base user immediately so currentUser is present on navigation
+      const base = mapSupabaseUser(data.user);
+      setCurrentUser(base);
+      // Asynchronously resolve institutional DB role
+      loadUserProfile(data.user);
+    }
+
     return data;
   };
 
@@ -424,6 +525,8 @@ export const AppProvider = ({ children }) => {
         provider: 'local'
       };
       setCurrentUser(mockUser);
+      setAuthStatus('AUTHENTICATED');
+      setProfileStatus('PROFILE_LOADED');
       return { user: mockUser };
     }
 
@@ -443,6 +546,14 @@ export const AppProvider = ({ children }) => {
     });
 
     if (error) throw error;
+
+    if (data?.user && data?.session) {
+      setAuthStatus('AUTHENTICATED');
+      const base = mapSupabaseUser(data.user);
+      setCurrentUser(base);
+      loadUserProfile(data.user);
+    }
+
     return data;
   };
 
@@ -460,6 +571,9 @@ export const AppProvider = ({ children }) => {
         console.warn('Sign out error:', err);
       }
     }
+    setAuthStatus('UNAUTHENTICATED');
+    setProfileStatus('PROFILE_LOADED');
+    setProfileError(null);
     setCurrentUser(null);
     localStorage.removeItem('pharmnexia_user');
   };
@@ -1211,7 +1325,11 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider
       value={{
         currentUser,
+        authStatus,
         authLoading,
+        profileStatus,
+        profileError,
+        retryProfileLoad,
         isSupabaseConfigured,
         loginWithGoogle,
         loginWithEmail,

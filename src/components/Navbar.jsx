@@ -226,7 +226,11 @@ export const Navbar = ({ currentPath, onNavigate }) => {
                     </button>
 
                     <button 
-                      onClick={() => { logoutUser(); setUserDropdownOpen(false); }} 
+                      onClick={async () => { 
+                        await logoutUser(); 
+                        setUserDropdownOpen(false); 
+                        onNavigate('/'); 
+                      }} 
                       className="w-full text-left px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors border-t border-[#E5E7EB] mt-1 font-medium"
                     >
                       <LogOut className="w-4 h-4" />
@@ -367,7 +371,11 @@ export const Navbar = ({ currentPath, onNavigate }) => {
                 </button>
 
                 <button 
-                  onClick={() => { logoutUser(); setMobileMenuOpen(false); }} 
+                  onClick={async () => { 
+                    await logoutUser(); 
+                    setMobileMenuOpen(false); 
+                    onNavigate('/'); 
+                  }} 
                   className="w-full text-left px-3.5 py-2 text-rose-600 font-semibold text-xs flex items-center gap-2"
                 >
                   <LogOut className="w-4 h-4" />

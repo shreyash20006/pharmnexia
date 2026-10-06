@@ -6,6 +6,8 @@ import { AuthModal } from './components/AuthModal';
 import { PageTransition } from './components/Animation';
 import { SupportDeskModal } from './components/SupportDeskModal';
 import { SupportDeskAdmin } from './components/SupportDeskAdmin';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Pages
 import { HomePage } from './pages/HomePage';
@@ -20,9 +22,9 @@ import { OpportunitiesPage } from './pages/OpportunitiesPage';
 import { OpportunityDetailPage } from './pages/OpportunityDetailPage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { AiMedicalWritingPage } from './pages/AiMedicalWritingPage';
-import { VerifyCertificatePage } from './pages/VerifyCertificatePage';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { 
   PrivacyPolicyPage, 
   TermsPage, 
@@ -32,6 +34,8 @@ import {
 } from './pages/LegalPages';
 
 function AppContent() {
+  const { currentUser, authStatus, logoutUser } = useApp();
+
   const [currentPath, setCurrentPath] = useState(() => {
     return window.location.pathname || '/';
   });
@@ -48,13 +52,20 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Sync auth modal with path & redirect authenticated users away from /login & /register
   useEffect(() => {
+    // If user is already authenticated and visits /login or /register, redirect to /dashboard cleanly
+    if (authStatus === 'AUTHENTICATED' && (currentPath === '/login' || currentPath === '/register')) {
+      setAuthModalOpen(false);
+      window.history.replaceState({}, '', '/dashboard');
+      setCurrentPath('/dashboard');
+      return;
+    }
+
     if (currentPath === '/login') {
       setAuthModalMode('login');
       setAuthModalOpen(true);
-    }
-
-    if (currentPath === '/register') {
+    } else if (currentPath === '/register') {
       setAuthModalMode('signup');
       setAuthModalOpen(true);
     }
@@ -73,9 +84,9 @@ function AppContent() {
       localStorage.setItem('pharmnexia_mentor_cal_connection', JSON.stringify(connectionData));
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [currentPath]);
+  }, [currentPath, authStatus]);
 
-  const navigate = (path) => {
+  const navigate = (path, options = {}) => {
     if (path.startsWith('/auth')) {
       const mode = path.includes('signup') ? 'signup' : 'login';
       setAuthModalMode(mode);
@@ -84,26 +95,41 @@ function AppContent() {
     }
 
     if (path === '/login') {
+      if (authStatus === 'AUTHENTICATED') {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
       setAuthModalMode('login');
       setAuthModalOpen(true);
       return;
     }
 
     if (path === '/register') {
+      if (authStatus === 'AUTHENTICATED') {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
       setAuthModalMode('signup');
       setAuthModalOpen(true);
       return;
     }
 
-    window.history.pushState({}, '', path);
+    if (options.replace) {
+      window.history.replaceState({}, '', path);
+    } else {
+      window.history.pushState({}, '', path);
+    }
     setCurrentPath(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Staff and Developer Authorization Roles
+  const staffRoles = ['ADMIN', 'SUPER_ADMIN', 'DEVELOPER', 'MENTOR_MANAGER', 'CONTENT_MANAGER', 'SUPPORT', 'ANALYST'];
+
   // Route matching helper
   const renderCurrentPage = () => {
     // 1. Home
-    if (currentPath === '/' || currentPath === '') {
+    if (currentPath === '/' || currentPath === '' || currentPath === '/login' || currentPath === '/register') {
       return <HomePage onNavigate={navigate} />;
     }
 
@@ -136,7 +162,11 @@ function AppContent() {
     }
     if (currentPath.startsWith('/programs/') && currentPath.endsWith('/access')) {
       const programId = currentPath.replace('/programs/', '').replace('/access', '');
-      return <ProgramAccessPage programId={programId} onNavigate={navigate} />;
+      return (
+        <ProtectedRoute onNavigate={navigate}>
+          <ProgramAccessPage programId={programId} onNavigate={navigate} />
+        </ProtectedRoute>
+      );
     }
     if (currentPath.startsWith('/programs/')) {
       const programId = currentPath.replace('/programs/', '');
@@ -165,14 +195,23 @@ function AppContent() {
       return <HomePage onNavigate={navigate} />;
     }
 
-    // 9. Student / profile / dashboard pages (Role-Driven Navigation)
+    // 9. Dashboard / Profile Pages (Role-Driven Dynamic Routing)
     if (currentPath === '/profile' || currentPath === '/dashboard') {
       const role = (currentUser?.staffRole || currentUser?.role || 'STUDENT').toUpperCase();
-      if (['ADMIN', 'SUPER_ADMIN', 'DEVELOPER', 'MENTOR_MANAGER', 'CONTENT_MANAGER', 'SUPPORT', 'ANALYST'].includes(role)) {
-        return <AdminDashboard onNavigate={navigate} />;
+      if (staffRoles.includes(role)) {
+        return (
+          <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+            <AdminDashboard onNavigate={navigate} />
+          </ProtectedRoute>
+        );
       }
-      return <StudentDashboard onNavigate={navigate} />;
+      return (
+        <ProtectedRoute onNavigate={navigate}>
+          <StudentDashboard onNavigate={navigate} />
+        </ProtectedRoute>
+      );
     }
+
     if (currentPath === '/contact') {
       return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -181,18 +220,34 @@ function AppContent() {
       );
     }
 
-    // 10. Admin Dashboard & CMS Subroutes
+    // 10. Admin Dashboard & Subroutes (Strictly Role Protected)
     if (currentPath === '/admin/programs') {
-      return <AdminDashboard initialSection="programs" onNavigate={navigate} />;
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard initialSection="programs" onNavigate={navigate} />
+        </ProtectedRoute>
+      );
     }
     if (currentPath === '/admin/analytics') {
-      return <AdminDashboard initialSection="analytics" onNavigate={navigate} />;
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard initialSection="analytics" onNavigate={navigate} />
+        </ProtectedRoute>
+      );
     }
     if (currentPath === '/admin/staff') {
-      return <AdminDashboard initialSection="staff" onNavigate={navigate} />;
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard initialSection="staff" onNavigate={navigate} />
+        </ProtectedRoute>
+      );
     }
     if (currentPath === '/admin') {
-      return <AdminDashboard onNavigate={navigate} />;
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard onNavigate={navigate} />
+        </ProtectedRoute>
+      );
     }
 
     // 11. Support Desk Management Console (Direct Route)
@@ -203,7 +258,8 @@ function AppContent() {
         </div>
       );
     }
-    // 11. Legal & Compliance Pages
+
+    // 12. Legal & Compliance Pages
     if (currentPath === '/privacy') {
       return <PrivacyPolicyPage onNavigate={navigate} />;
     }
@@ -220,18 +276,20 @@ function AppContent() {
       return <AboutPage onNavigate={navigate} />;
     }
 
-    // Default fallback
-    return <HomePage onNavigate={navigate} />;
+    // 13. 404 Fallback for unknown routes
+    return <NotFoundPage onNavigate={navigate} />;
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#111111] font-sans selection:bg-[#00D084]/20 selection:text-[#087A52] antialiased">
+    <div className="min-h-screen flex flex-col bg-[#FFFFFF] text-[#111827] font-sans selection:bg-[#00D084]/20 selection:text-[#087A52] antialiased">
       <Navbar currentPath={currentPath} onNavigate={navigate} />
 
       <main className="flex-1">
-        <PageTransition key={currentPath}>
-          {renderCurrentPage()}
-        </PageTransition>
+        <ErrorBoundary onNavigate={navigate}>
+          <PageTransition key={currentPath}>
+            {renderCurrentPage()}
+          </PageTransition>
+        </ErrorBoundary>
       </main>
 
       <Footer onNavigate={navigate} />
@@ -243,13 +301,14 @@ function AppContent() {
           setAuthModalOpen(false);
           const current = window.location.pathname;
           if (current === '/login' || current === '/register') {
-            window.history.pushState({}, '', '/');
+            window.history.replaceState({}, '', '/');
             setCurrentPath('/');
           }
         }}
         onSuccess={() => {
           setAuthModalOpen(false);
-          navigate('/dashboard');
+          // Use replace: true so /login or /register is replaced in history
+          navigate('/dashboard', { replace: true });
         }}
       />
 
@@ -266,8 +325,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

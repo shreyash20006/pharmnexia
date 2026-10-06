@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -28,6 +28,7 @@ import {
 import { useApp } from '../store/AppContext';
 import { CertificateViewer } from '../components/CertificateViewer';
 import { MentorCalendarManager } from '../components/MentorCalendarManager';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export const StudentDashboard = ({ onNavigate }) => {
   const { 
@@ -85,6 +86,16 @@ export const StudentDashboard = ({ onNavigate }) => {
   const [profYear, setProfYear] = useState(currentUser?.year || "1st Year");
   const [profBio, setProfBio] = useState(currentUser?.bio || "");
 
+  // Synchronize profile form state whenever currentUser updates from DB
+  useEffect(() => {
+    if (currentUser) {
+      setProfCollege(currentUser.college || "");
+      setProfDegree(currentUser.degree || "B.Pharm");
+      setProfYear(currentUser.year || "1st Year");
+      setProfBio(currentUser.bio || "");
+    }
+  }, [currentUser]);
+
   const handleSaveProfile = (e) => {
     e.preventDefault();
     updateStudentProfile({
@@ -96,17 +107,19 @@ export const StudentDashboard = ({ onNavigate }) => {
     setIsEditingProfile(false);
   };
 
-  // Find enrolled programs objects
-  const enrolledProgsList = programs.filter(p => enrolledProgramIds.includes(p.id));
-  const savedOppsList = opportunities.filter(o => savedOpportunityIds.includes(o.id));
-  const studentCertificates = certificates.filter(c => 
-    currentUser?.name && c.studentName.toLowerCase().includes(currentUser.name.toLowerCase().split(' ')[0])
-  );
+  // Find enrolled programs objects defensively
+  const enrolledProgsList = (programs || []).filter(p => (enrolledProgramIds || []).includes(p?.id));
+  const savedOppsList = (opportunities || []).filter(o => (savedOpportunityIds || []).includes(o?.id));
+  const studentCertificates = (certificates || []).filter(c => {
+    if (!currentUser?.name || !c?.studentName) return false;
+    const studentFirst = currentUser.name.trim().toLowerCase().split(' ')[0];
+    return c.studentName.toLowerCase().includes(studentFirst);
+  });
 
-  const upcomingBooking = bookings.find(b => b.status === 'CONFIRMED');
+  const upcomingBooking = (bookings || []).find(b => b?.status === 'CONFIRMED');
 
-  const userTickets = supportTickets.filter(t => 
-    t.userId === currentUser?.id || t.userPharmNexiaId === currentUser?.pharmNexiaId || t.userEmail === currentUser?.email
+  const userTickets = (supportTickets || []).filter(t => 
+    t?.userId === currentUser?.id || t?.userPharmNexiaId === currentUser?.pharmNexiaId || t?.userEmail === currentUser?.email
   );
 
   const navItems = [

@@ -23,13 +23,30 @@ export const CareerPathDetailPage = ({ slug, onNavigate }) => {
   const [selectedMentorForBooking, setSelectedMentorForBooking] = useState(null);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
-  const path = careerPaths.find(p => p.slug === slug || p.id === slug) || careerPaths[0];
+  const path = (careerPaths || []).find(p => p.slug === slug || p.id === slug) || careerPaths?.[0];
 
-  const relatedMentors = mentors.filter(m => m.careerPathSlugs?.includes(path.slug));
+  if (!path) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4 animate-fadeIn">
+        <h2 className="text-xl font-bold text-[#101828] font-heading">Career Path Not Found</h2>
+        <p className="text-xs text-[#667085] max-w-sm mx-auto">
+          The requested career track is currently unavailable or being updated by the council.
+        </p>
+        <button
+          onClick={() => onNavigate('/career-paths')}
+          className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
+        >
+          Browse All Career Paths
+        </button>
+      </div>
+    );
+  }
 
-  const relatedPrograms = programs.filter(p => 
-    p.category.toLowerCase().includes(path.title.toLowerCase()) ||
-    path.title.toLowerCase().includes(p.category.toLowerCase()) ||
+  const relatedMentors = (mentors || []).filter(m => m.careerPathSlugs?.includes(path.slug));
+
+  const relatedPrograms = (programs || []).filter(p => 
+    p.category?.toLowerCase().includes(path.title?.toLowerCase() || '') ||
+    path.title?.toLowerCase().includes(p.category?.toLowerCase() || '') ||
     p.category === "Career Bootcamps"
   );
 

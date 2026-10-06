@@ -28,8 +28,26 @@ export const ProgramDetailPage = ({ programId, onNavigate }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [confirmedRegData, setConfirmedRegData] = useState(null);
 
-  const program = programs.find(p => p.id === programId) || programs[0];
-  const isEnrolled = enrolledProgramIds.includes(program.id);
+  const program = (programs || []).find(p => p.id === programId) || programs?.[0];
+
+  if (!program) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4 animate-fadeIn">
+        <h2 className="text-xl font-bold text-[#101828] font-heading">Program Not Found</h2>
+        <p className="text-xs text-[#667085] max-w-sm mx-auto">
+          The requested training cohort or masterclass is currently unavailable.
+        </p>
+        <button
+          onClick={() => onNavigate('/programs')}
+          className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
+        >
+          Browse All Programs
+        </button>
+      </div>
+    );
+  }
+
+  const isEnrolled = (enrolledProgramIds || []).includes(program.id);
 
   // SEO & Meta Object Synchronization
   useEffect(() => {

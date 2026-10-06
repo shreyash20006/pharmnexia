@@ -21,8 +21,26 @@ export const OpportunityDetailPage = ({ opportunityId, onNavigate }) => {
   const [hasApplied, setHasApplied] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
 
-  const opp = opportunities.find(o => o.id === opportunityId) || opportunities[0];
-  const isSaved = savedOpportunityIds.includes(opp.id);
+  const opp = (opportunities || []).find(o => o.id === opportunityId) || opportunities?.[0];
+
+  if (!opp) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-24 text-center space-y-4 animate-fadeIn">
+        <h2 className="text-xl font-bold text-[#101828] font-heading">Opportunity Not Found</h2>
+        <p className="text-xs text-[#667085] max-w-sm mx-auto">
+          The requested fellowship or job listing has expired or is unavailable.
+        </p>
+        <button
+          onClick={() => onNavigate('/opportunities')}
+          className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-xs font-semibold shadow-sm transition"
+        >
+          Browse All Opportunities
+        </button>
+      </div>
+    );
+  }
+
+  const isSaved = (savedOpportunityIds || []).includes(opp.id);
 
   const handleApply = () => {
     setIsApplying(true);
