@@ -6,7 +6,6 @@ import {
   Search, 
   Filter, 
   Bookmark, 
-  BookmarkCheck, 
   ExternalLink, 
   ArrowRight,
   Sparkles,
@@ -176,7 +175,7 @@ export const OpportunitiesPage = ({ onNavigate }) => {
                     }`}
                     title={isSaved ? "Saved to your bookmarks" : "Save opportunity"}
                   >
-                    {isSaved ? <BookmarkCheck className="w-5 h-5 fill-[#00A86B] text-[#00A86B]" /> : <Bookmark className="w-5 h-5" />}
+                    {isSaved ? <Bookmark className="w-5 h-5 fill-[#00A86B] text-[#00A86B]" /> : <Bookmark className="w-5 h-5" />}
                   </button>
 
                   <button

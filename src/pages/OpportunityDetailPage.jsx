@@ -9,7 +9,6 @@ import {
   CheckCircle2, 
   Share2, 
   Bookmark, 
-  BookmarkCheck, 
   Building, 
   Sparkles 
 } from 'lucide-react';
@@ -92,7 +91,7 @@ export const OpportunityDetailPage = ({ opportunityId, onNavigate }) => {
                 }`}
                 title={isSaved ? "Saved" : "Save"}
               >
-                {isSaved ? <BookmarkCheck className="w-5 h-5 fill-[#00A86B] text-[#00A86B]" /> : <Bookmark className="w-5 h-5" />}
+                {isSaved ? <Bookmark className="w-5 h-5 fill-[#00A86B] text-[#00A86B]" /> : <Bookmark className="w-5 h-5" />}
               </button>
             </div>
           </div>
