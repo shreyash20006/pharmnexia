@@ -81,55 +81,61 @@ export const BookingModal = ({ mentor, onClose, onNavigateToDashboard }) => {
       console.warn("Notice creating pending booking:", createErr);
     }
 
-    initiateRazorpayPayment({
-      amount: price,
-      name: 'PharmNexia Mentorship',
-      description: `${duration}m 1-on-1 session with ${mentor.name}`,
-      prefill: {
-        name: studentName || currentUser?.name || 'Student Aspirant',
-        email: studentEmail || currentUser?.email || '',
-        contact: currentUser?.phone || ''
-      },
-      notes: {
-        mentor_id: mentor.id,
-        mentor_name: mentor.name,
-        session_duration: String(duration),
-        scheduled_date: calculatedDate,
-        scheduled_time: selectedSlot,
-        booking_code: pendingBooking?.bookingCode || ''
-      },
-      onSuccess: async (response) => {
-        try {
-          if (pendingBooking?.bookingCode && confirmBookingPayment) {
-            await confirmBookingPayment(pendingBooking.bookingCode, {
-              paymentId: response.razorpay_payment_id,
-              gateway: 'RAZORPAY'
+    try {
+      initiateRazorpayPayment({
+        amount: price,
+        name: 'PharmNexia Mentorship',
+        description: `${duration}m 1-on-1 session with ${mentor.name}`,
+        prefill: {
+          name: studentName || currentUser?.name || 'Student Aspirant',
+          email: studentEmail || currentUser?.email || '',
+          contact: currentUser?.phone || ''
+        },
+        notes: {
+          mentor_id: mentor.id,
+          mentor_name: mentor.name,
+          session_duration: String(duration),
+          scheduled_date: calculatedDate,
+          scheduled_time: selectedSlot,
+          booking_code: pendingBooking?.bookingCode || ''
+        },
+        onSuccess: async (response) => {
+          try {
+            if (pendingBooking?.bookingCode && confirmBookingPayment) {
+              await confirmBookingPayment(pendingBooking.bookingCode, {
+                paymentId: response.razorpay_payment_id,
+                gateway: 'RAZORPAY'
+              });
+            }
+
+            setConfirmedBooking(pendingBooking || { bookingCode: `BK-${Date.now()}` });
+            setIsProcessing(false);
+            setStep(4);
+
+            confetti({
+              particleCount: 110,
+              spread: 70,
+              origin: { y: 0.6 }
             });
+          } catch (err) {
+            console.error('Razorpay session booking notice:', err);
+            setIsProcessing(false);
+            setStep(4);
           }
-
-          setConfirmedBooking(pendingBooking || { bookingCode: `BK-${Date.now()}` });
+        },
+        onDismiss: () => {
           setIsProcessing(false);
-          setStep(4);
-
-          confetti({
-            particleCount: 110,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-        } catch (err) {
-          console.error('Razorpay session booking notice:', err);
+        },
+        onError: (err) => {
           setIsProcessing(false);
-          setStep(4);
+          alert(err?.message || 'Payment was cancelled or could not be completed.');
         }
-      },
-      onDismiss: () => {
-        setIsProcessing(false);
-      },
-      onError: (err) => {
-        setIsProcessing(false);
-        alert(err.message || 'Payment was cancelled or could not be completed.');
-      }
-    });
+      });
+    } catch (launchErr) {
+      setIsProcessing(false);
+      console.error('[PharmNexia] Failed to launch payment gateway:', launchErr);
+      alert(launchErr?.message || 'Could not initiate payment gateway.');
+    }
   };
 
   return (

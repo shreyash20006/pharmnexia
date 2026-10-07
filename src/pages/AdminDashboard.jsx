@@ -417,7 +417,8 @@ export const AdminDashboard = ({ initialSection = 'dashboard', onNavigate }) => 
     membershipFee: platformSettings?.membershipFee || 99,
     mentorPayoutPercent: platformSettings?.mentorPayoutPercent || 70,
     minSessionPrice: platformSettings?.minSessionPrice || 99,
-    maxSessionPrice: platformSettings?.maxSessionPrice || 10000
+    maxSessionPrice: platformSettings?.maxSessionPrice || 10000,
+    razorpayKeyId: platformSettings?.razorpayKeyId || import.meta.env.VITE_RAZORPAY_KEY_ID || ''
   });
   const [pricingSavedNotice, setPricingSavedNotice] = useState(false);
 
@@ -427,7 +428,8 @@ export const AdminDashboard = ({ initialSection = 'dashboard', onNavigate }) => 
         membershipFee: platformSettings.membershipFee ?? 99,
         mentorPayoutPercent: platformSettings.mentorPayoutPercent ?? 70,
         minSessionPrice: platformSettings.minSessionPrice ?? 99,
-        maxSessionPrice: platformSettings.maxSessionPrice ?? 10000
+        maxSessionPrice: platformSettings.maxSessionPrice ?? 10000,
+        razorpayKeyId: platformSettings.razorpayKeyId || import.meta.env.VITE_RAZORPAY_KEY_ID || ''
       });
     }
   }, [platformSettings]);
@@ -512,12 +514,20 @@ export const AdminDashboard = ({ initialSection = 'dashboard', onNavigate }) => 
 
   const handleSavePricingSettings = async (e) => {
     e.preventDefault();
+    const cleanKey = (pricingForm.razorpayKeyId || '').trim();
+    if (cleanKey) {
+      localStorage.setItem('pharmnexia_razorpay_key_id', cleanKey);
+      if (typeof window !== 'undefined') {
+        window.__PHARMNEXIA_RAZORPAY_KEY__ = cleanKey;
+      }
+    }
     await updatePlatformSettings({
       membershipFee: Number(pricingForm.membershipFee) || 99,
       mentorPayoutPercent: Number(pricingForm.mentorPayoutPercent) || 70,
       platformFeePercent: 100 - (Number(pricingForm.mentorPayoutPercent) || 70),
       minSessionPrice: Number(pricingForm.minSessionPrice) || 99,
-      maxSessionPrice: Number(pricingForm.maxSessionPrice) || 10000
+      maxSessionPrice: Number(pricingForm.maxSessionPrice) || 10000,
+      razorpayKeyId: cleanKey
     });
     setPricingSavedNotice(true);
     setTimeout(() => setPricingSavedNotice(false), 3000);
@@ -1608,7 +1618,7 @@ Reserve your free seat here: https://pharmnexia.in/programs`
                 <div className="flex items-center justify-between py-1 border-b border-[#E5E7EB]">
                   <span className="text-[#667085]">Public Key ID:</span>
                   <span className="font-mono text-[11px] font-bold text-[#101828] bg-[#F8FAF9] px-2 py-0.5 rounded border border-[#E5E7EB]">
-                    {import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_... (Configured via ENV)'}
+                    {pricingForm.razorpayKeyId || platformSettings?.razorpayKeyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'Not Configured (Demo Mode)'}
                   </span>
                 </div>
 
@@ -1752,6 +1762,22 @@ Reserve your free seat here: https://pharmnexia.in/programs`
                     className="w-full p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B]"
                   />
                   <span className="text-[10px] text-[#667085]">Cap price threshold</span>
+                </div>
+
+                <div className="sm:col-span-2 lg:col-span-4 pt-2">
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Razorpay Public Key ID (VITE_RAZORPAY_KEY_ID)
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder="rzp_test_... or rzp_live_..."
+                    value={pricingForm.razorpayKeyId || ''}
+                    onChange={(e) => setPricingForm(f => ({ ...f, razorpayKeyId: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono text-xs focus:outline-none focus:border-[#00A86B]"
+                  />
+                  <span className="text-[10px] text-[#667085] mt-1 block">
+                    Copy from your Razorpay Dashboard → Settings → API Keys. Saves directly and immediately applies to all mentorship bookings & cohort checkouts.
+                  </span>
                 </div>
               </div>
 

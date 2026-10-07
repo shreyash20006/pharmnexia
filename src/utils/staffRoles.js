@@ -167,6 +167,20 @@ export const INITIAL_STAFF_MEMBERS = [
     lastActive: 'Active now'
   },
   {
+    id: 'staff-phn-2',
+    pharmNexiaId: 'PHN-ADM-001089',
+    name: 'PharmNexia Admin',
+    email: 'pharmnexia@gmail.com',
+    role: 'SUPER_ADMIN',
+    department: 'Executive Governance',
+    title: 'Super Administrator',
+    status: 'ACTIVE',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=PharmNexia',
+    invitedBy: 'System Genesis',
+    joinedDate: '2026-10-07',
+    lastActive: 'Active now'
+  },
+  {
     id: 'staff-001',
     pharmNexiaId: 'PHN-STF-000001',
     name: 'Dr. K. Sen',

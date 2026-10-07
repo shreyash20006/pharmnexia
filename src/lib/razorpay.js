@@ -13,24 +13,70 @@ export const loadRazorpayScript = () => {
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => {
-      console.warn('[PharmNexia] Failed to load Razorpay checkout script from CDN');
+    const existingScript = typeof document !== 'undefined' ? document.querySelector('script[src*="checkout.razorpay.com"]') : null;
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(true), { once: true });
+      existingScript.addEventListener('error', () => resolve(false), { once: true });
+      setTimeout(() => {
+        resolve(typeof window !== 'undefined' && !!window.Razorpay);
+      }, 1500);
+      return;
+    }
+
+    if (typeof document !== 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => {
+        console.warn('[PharmNexia] Failed to load Razorpay checkout script from CDN');
+        resolve(false);
+      };
+      document.body.appendChild(script);
+    } else {
       resolve(false);
-    };
-    document.body.appendChild(script);
+    }
   });
 };
 
 /**
  * Get active Razorpay public Key ID
- * Configured via Vite environment variable VITE_RAZORPAY_KEY_ID
+ * Checks Vite environment variables, window configuration, and Admin platformSettings
  */
 export const getRazorpayKeyId = () => {
-  return import.meta.env?.VITE_RAZORPAY_KEY_ID || '';
+  // 1. Vite environment variable
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) {
+    const envKey = String(import.meta.env.VITE_RAZORPAY_KEY_ID).trim();
+    if (envKey && envKey !== 'rzp_test_yourkeyidhere') return envKey;
+  }
+
+  // 2. Global window configuration
+  if (typeof window !== 'undefined' && window.__PHARMNEXIA_RAZORPAY_KEY__) {
+    const winKey = String(window.__PHARMNEXIA_RAZORPAY_KEY__).trim();
+    if (winKey && winKey !== 'rzp_test_yourkeyidhere') return winKey;
+  }
+
+  // 3. LocalStorage platform settings saved by Admin
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const saved = localStorage.getItem('pharmnexia_platform_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.razorpayKeyId) {
+          const storedKey = String(parsed.razorpayKeyId).trim();
+          if (storedKey && storedKey !== 'rzp_test_yourkeyidhere') return storedKey;
+        }
+      }
+
+      const directKey = localStorage.getItem('pharmnexia_razorpay_key_id') || localStorage.getItem('VITE_RAZORPAY_KEY_ID');
+      if (directKey) {
+        const cleanDirect = String(directKey).trim();
+        if (cleanDirect && cleanDirect !== 'rzp_test_yourkeyidhere') return cleanDirect;
+      }
+    } catch {}
+  }
+
+  return '';
 };
 
 /**

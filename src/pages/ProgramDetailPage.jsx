@@ -51,7 +51,7 @@ const ProgramDetailSkeleton = ({ onNavigate }) => (
 );
 
 export const ProgramDetailPage = ({ programId, onNavigate }) => {
-  const { programs, registerForProgram, enrolledProgramIds, trackAnalyticsEvent } = useApp();
+  const { currentUser, programs, registerForProgram, enrolledProgramIds, trackAnalyticsEvent } = useApp();
   const [openWeekIdx, setOpenWeekIdx] = useState(0);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -136,44 +136,50 @@ export const ProgramDetailPage = ({ programId, onNavigate }) => {
 
     setIsRegistering(true);
 
-    initiateRazorpayPayment({
-      amount: program.price,
-      name: 'PharmNexia Cohort',
-      description: program.title,
-      prefill: {
-        name: currentUser?.name || 'Student Aspirant',
-        email: currentUser?.email || '',
-        contact: currentUser?.phone || ''
-      },
-      notes: {
-        program_id: program.id,
-        program_title: program.title,
-        cohort_duration: program.duration || ''
-      },
-      onSuccess: (response) => {
-        const reg = registerForProgram(program.id, {
-          paymentId: response.razorpay_payment_id,
-          name: currentUser?.name,
-          email: currentUser?.email
-        });
-        setConfirmedRegData(reg);
-        setIsRegistering(false);
-        setShowSuccessModal(true);
+    try {
+      initiateRazorpayPayment({
+        amount: program.price,
+        name: 'PharmNexia Cohort',
+        description: program.title,
+        prefill: {
+          name: currentUser?.name || 'Student Aspirant',
+          email: currentUser?.email || '',
+          contact: currentUser?.phone || ''
+        },
+        notes: {
+          program_id: program.id,
+          program_title: program.title,
+          cohort_duration: program.duration || ''
+        },
+        onSuccess: (response) => {
+          const reg = registerForProgram(program.id, {
+            paymentId: response.razorpay_payment_id,
+            name: currentUser?.name || 'Student Aspirant',
+            email: currentUser?.email || ''
+          });
+          setConfirmedRegData(reg);
+          setIsRegistering(false);
+          setShowSuccessModal(true);
 
-        confetti({
-          particleCount: 110,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      },
-      onDismiss: () => {
-        setIsRegistering(false);
-      },
-      onError: (err) => {
-        setIsRegistering(false);
-        alert(err.message || 'Payment was cancelled or could not be processed.');
-      }
-    });
+          confetti({
+            particleCount: 110,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        },
+        onDismiss: () => {
+          setIsRegistering(false);
+        },
+        onError: (err) => {
+          setIsRegistering(false);
+          alert(err?.message || 'Payment was cancelled or could not be processed.');
+        }
+      });
+    } catch (err) {
+      setIsRegistering(false);
+      console.error('[PharmNexia] Failed to launch payment gateway:', err);
+      alert(err?.message || 'Could not initiate payment gateway.');
+    }
   };
 
   const discountPercent = program.originalPrice && program.originalPrice > program.price
