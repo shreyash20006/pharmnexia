@@ -65,6 +65,7 @@ serve(async (req) => {
       const paymentId = paymentEntity.id;
       const amountPaid = paymentEntity.amount / 100; // Razorpay sends in paise
       const currency = paymentEntity.currency;
+      const bookingCode = paymentEntity.notes?.booking_code;
       const registrationCode = paymentEntity.notes?.registration_code;
       const programId = paymentEntity.notes?.program_id;
 
@@ -84,16 +85,32 @@ serve(async (req) => {
 
       // 4. Update Payment Record to SUCCESS
       await supabase.from("payments").insert({
+        booking_code: bookingCode || null,
+        program_id: programId || null,
         gateway_payment_id: paymentId,
         gateway_order_id: orderId,
         amount: amountPaid,
         currency: currency,
         status: "SUCCESS",
         gateway_name: "RAZORPAY",
-        gateway_signature_verified: true
+        gateway_signature_verified: true,
+        paid_at: new Date().toISOString()
       });
 
-      // 5. Update Registration State to CONFIRMED
+      // 5. Update Mentorship Booking State to CONFIRMED
+      if (bookingCode) {
+        await supabase
+          .from("bookings")
+          .update({
+            status: "CONFIRMED",
+            payment_status: "SUCCESS",
+            payment_id: paymentId,
+            calendar_sync_status: "CONFIRMED"
+          })
+          .eq("booking_code", bookingCode);
+      }
+
+      // 6. Update Program Registration State to CONFIRMED
       if (registrationCode) {
         await supabase
           .from("program_registrations")

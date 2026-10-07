@@ -43,8 +43,7 @@ export const Navbar = ({ currentPath, onNavigate }) => {
   // Secondary items placed cleanly in "More ▾" dropdown
   const secondaryLinks = [
     { label: 'Opportunities', path: '/opportunities', icon: Briefcase, desc: 'Internships, Jobs & Fellowships' },
-    { label: 'About', path: '/about', icon: Info, desc: 'Our Mission & Academic Council' },
-    { label: 'Become a Mentor', path: '/become-a-mentor', icon: UserCheck, desc: 'Guide next-gen pharmacy aspirants' },
+    { label: 'About', path: '/about', icon: Info, desc: 'Our Mission & Academic Council' }
   ];
 
   const unreadNotifs = notifications ? notifications.filter((n) => !n.isRead).length : 0;

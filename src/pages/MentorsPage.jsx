@@ -17,11 +17,10 @@ import {
 } from 'lucide-react';
 import { useApp } from '../store/AppContext';
 import { BookingModal } from '../components/BookingModal';
-import { MentorApplicationModal } from '../components/MentorApplicationModal';
 import { ScrollReveal, FadeUp, FadeLeft, FadeRight } from '../components/Animation';
 
-export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
-  const { mentors = [], addMentor, currentUser } = useApp();
+export const MentorsPage = ({ onNavigate }) => {
+  const { mentors = [], authLoading } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("ALL");
@@ -30,15 +29,6 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
   const [sortBy, setSortBy] = useState("rating");
   const [selectedMentorForBooking, setSelectedMentorForBooking] = useState(null);
 
-  // Apply as Mentor Modal State
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState(initialApplyOpen);
-
-  useEffect(() => {
-    if (initialApplyOpen) {
-      setIsApplyModalOpen(true);
-    }
-  }, [initialApplyOpen]);
-
   const mentorTypes = ["ALL", "Faculty", "Alumni", "Industry", "Researchers", "Exam/Entrance Mentors"];
   const priceModels = ["ALL", "Free / Volunteer", "Paid / Honorarium"];
 
@@ -46,6 +36,11 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
 
   const filteredMentors = safeMentors.filter(m => {
     if (!m) return false;
+    // Strict requirement: Only verified and active mentors are shown in public directory
+    const isVerified = (m.verificationStatus || '').toLowerCase() === 'verified';
+    const isActive = m.isActive !== false;
+    if (!isVerified || !isActive) return false;
+
     const name = (m.name || '').toLowerCase();
     const currentRole = (m.currentRole || '').toLowerCase();
     const currentOrg = (m.currentOrg || '').toLowerCase();
@@ -96,16 +91,6 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
             <p className="text-[#667085] text-[15.5px] leading-[1.65]">
               Book private 30 or 60 minute video sessions with verified alumni, industry scientists, academic researchers, and entrance toppers.
             </p>
-          </div>
-
-          <div className="relative z-10 flex-shrink-0">
-            <button
-              onClick={() => setIsApplyModalOpen(true)}
-              className="px-5 py-3 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[15px] shadow-sm transition flex items-center gap-2 btn-primary-action"
-            >
-              <UserCheck className="w-4 h-4" />
-              <span>Apply as a Mentor</span>
-            </button>
           </div>
         </div>
       </FadeUp>
@@ -276,10 +261,10 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
                     <div>
                       <div className="text-[10px] text-[#667085] uppercase font-mono">30 Min Session</div>
                       <div className="font-extrabold text-[#101828] text-[15.5px] font-heading">
-                        {Number(mentor.price30) === 0 ? (
-                          <span className="text-[#087A52]">Free Session</span>
-                        ) : (
+                        {Number(mentor.price30) > 0 ? (
                           <span>₹{mentor.price30}</span>
+                        ) : (
+                          <span className="text-amber-600 text-[12.5px] font-semibold">Price not configured</span>
                         )}
                       </div>
                     </div>
@@ -291,12 +276,22 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
                       >
                         View Profile
                       </button>
-                      <button
-                        onClick={() => setSelectedMentorForBooking(mentor)}
-                        className="px-4 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[14px] shadow-sm transition btn-primary-action"
-                      >
-                        Book Session
-                      </button>
+                      {Number(mentor.price30) > 0 ? (
+                        <button
+                          onClick={() => setSelectedMentorForBooking(mentor)}
+                          className="px-4 py-2 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[14px] shadow-sm transition btn-primary-action"
+                        >
+                          Book Session
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-4 py-2 rounded-xl bg-gray-100 text-gray-400 font-semibold text-[13px] border border-gray-200 cursor-not-allowed"
+                          title="Price not configured yet"
+                        >
+                          Unavailable
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -315,18 +310,12 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
             Verified Mentor Directory
           </h2>
           <p className="text-sm text-[#667085] leading-relaxed max-w-md mx-auto">
-            No mentors are available yet. New mentors are being verified. Check back soon.
+            No mentors are available yet. Mentors are curated and verified directly by the PharmNexia Academic Council. Check back soon.
           </p>
           <div className="pt-2 flex items-center justify-center gap-3">
             <button
-              onClick={() => setIsApplyModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition"
-            >
-              Apply as a Verified Mentor
-            </button>
-            <button
               onClick={() => onNavigate('/career-paths')}
-              className="px-5 py-2.5 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#00A86B] text-[#111827] font-semibold text-xs transition"
+              className="px-5 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition"
             >
               Explore Career Paths
             </button>
@@ -348,15 +337,6 @@ export const MentorsPage = ({ onNavigate, initialApplyOpen = false }) => {
           onNavigateToDashboard={onNavigate}
         />
       )}
-
-      {/* Apply as Mentor Modal (Wide Landscape System Modal) */}
-      <MentorApplicationModal 
-        isOpen={isApplyModalOpen}
-        onClose={() => setIsApplyModalOpen(false)}
-        onSuccess={() => {
-          setIsApplyModalOpen(false);
-        }}
-      />
     </div>
   );
 };

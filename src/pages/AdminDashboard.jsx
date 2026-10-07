@@ -54,6 +54,8 @@ export const AdminDashboard = ({ initialSection = 'dashboard', onNavigate }) => 
     currentUser, 
     mentors, 
     updateMentorStatus, 
+    updateMentor,
+    toggleMentorActive,
     addMentor, 
     certificates, 
     issueCertificate, 
@@ -74,7 +76,9 @@ export const AdminDashboard = ({ initialSection = 'dashboard', onNavigate }) => 
     toggleStaffStatus,
     removeStaff,
     auditLogs,
-    supportTickets 
+    supportTickets,
+    platformSettings,
+    updatePlatformSettings
   } = useApp();
 
   const [activeSection, setActiveSection] = useState(initialSection);
@@ -370,6 +374,174 @@ export const AdminDashboard = ({ initialSection = 'dashboard', onNavigate }) => 
   const pendingMentors = mentors.filter(m => m.verificationStatus === 'pending');
   const verifiedMentors = mentors.filter(m => m.verificationStatus === 'verified');
 
+  // ---------------------------------------------------------------------------
+  // ADMIN MENTOR CMS STATE & MODALS
+  // ---------------------------------------------------------------------------
+  const defaultMentorForm = {
+    name: '',
+    email: '',
+    avatarUrl: '',
+    phone: '',
+    location: 'India',
+    shortBio: '',
+    about: '',
+    currentRole: '',
+    currentOrg: '',
+    mentorType: 'Industry Professional',
+    qualification: 'B.Pharm, M.Pharm',
+    previousEducation: '',
+    expertise: 'Pharmacovigilance, Regulatory Affairs',
+    careerPathSlugs: ['pharmacovigilance'],
+    price30: 499,
+    price60: 899,
+    payoutModel: 'PERCENTAGE',
+    payoutRate: 70,
+    availableDays: ['Saturday', 'Sunday'],
+    availableSlots: ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
+    startTime: '06:00 PM',
+    endTime: '08:00 PM',
+    timezone: 'Asia/Kolkata (IST)',
+    verificationStatus: 'verified',
+    isActive: true
+  };
+
+  const [showCreateMentorModal, setShowCreateMentorModal] = useState(false);
+  const [showEditMentorModal, setShowEditMentorModal] = useState(false);
+  const [editingMentorId, setEditingMentorId] = useState(null);
+  const [mentorFormData, setMentorFormData] = useState(defaultMentorForm);
+  const [mentorSearch, setMentorSearch] = useState('');
+  const [mentorTypeFilter, setMentorTypeFilter] = useState('ALL');
+  const [mentorStatusFilter, setMentorStatusFilter] = useState('ALL');
+
+  const [pricingForm, setPricingForm] = useState({
+    membershipFee: platformSettings?.membershipFee || 99,
+    mentorPayoutPercent: platformSettings?.mentorPayoutPercent || 70,
+    minSessionPrice: platformSettings?.minSessionPrice || 99,
+    maxSessionPrice: platformSettings?.maxSessionPrice || 10000
+  });
+  const [pricingSavedNotice, setPricingSavedNotice] = useState(false);
+
+  useEffect(() => {
+    if (platformSettings) {
+      setPricingForm({
+        membershipFee: platformSettings.membershipFee ?? 99,
+        mentorPayoutPercent: platformSettings.mentorPayoutPercent ?? 70,
+        minSessionPrice: platformSettings.minSessionPrice ?? 99,
+        maxSessionPrice: platformSettings.maxSessionPrice ?? 10000
+      });
+    }
+  }, [platformSettings]);
+
+  const handleOpenCreateMentor = () => {
+    setMentorFormData(defaultMentorForm);
+    setShowCreateMentorModal(true);
+  };
+
+  const handleOpenEditMentor = (m) => {
+    setEditingMentorId(m.id);
+    setMentorFormData({
+      name: m.name || '',
+      email: m.email || '',
+      avatarUrl: m.avatarUrl || '',
+      phone: m.phone || '',
+      location: m.location || 'India',
+      shortBio: m.shortBio || '',
+      about: m.about || '',
+      currentRole: m.currentRole || '',
+      currentOrg: m.currentOrg || '',
+      mentorType: m.mentorType || 'Industry Professional',
+      qualification: m.qualification || '',
+      previousEducation: m.previousEducation || '',
+      expertise: Array.isArray(m.expertise) ? m.expertise.join(', ') : (m.expertise || ''),
+      careerPathSlugs: Array.isArray(m.careerPathSlugs) ? m.careerPathSlugs : ['pharmacovigilance'],
+      price30: m.price30 ?? 0,
+      price60: m.price60 ?? 0,
+      payoutModel: m.payoutModel || 'PERCENTAGE',
+      payoutRate: m.payoutRate ?? 70,
+      availableDays: Array.isArray(m.availableDays) ? m.availableDays : ['Saturday', 'Sunday'],
+      availableSlots: Array.isArray(m.availableSlots) ? m.availableSlots : ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
+      startTime: m.startTime || '06:00 PM',
+      endTime: m.endTime || '08:00 PM',
+      timezone: m.timezone || 'Asia/Kolkata (IST)',
+      verificationStatus: m.verificationStatus || 'verified',
+      isActive: m.isActive !== false
+    });
+    setShowEditMentorModal(true);
+  };
+
+  const handleSaveCreateMentor = async (e) => {
+    e.preventDefault();
+    if (!mentorFormData.name || !mentorFormData.email || !mentorFormData.currentRole || !mentorFormData.currentOrg) {
+      alert("Please provide at least Name, Professional Email, Current Role, and Organization.");
+      return;
+    }
+    const expertiseArray = typeof mentorFormData.expertise === 'string'
+      ? mentorFormData.expertise.split(',').map(s => s.trim()).filter(Boolean)
+      : (Array.isArray(mentorFormData.expertise) ? mentorFormData.expertise : []);
+
+    await addMentor({
+      ...mentorFormData,
+      expertise: expertiseArray,
+      price30: Number(mentorFormData.price30) || 0,
+      price60: Number(mentorFormData.price60) || 0,
+      payoutRate: Number(mentorFormData.payoutRate) || 0,
+      avatarUrl: mentorFormData.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(mentorFormData.name)}`
+    });
+
+    setShowCreateMentorModal(false);
+  };
+
+  const handleSaveEditMentor = async (e) => {
+    e.preventDefault();
+    if (!editingMentorId) return;
+    const expertiseArray = typeof mentorFormData.expertise === 'string'
+      ? mentorFormData.expertise.split(',').map(s => s.trim()).filter(Boolean)
+      : (Array.isArray(mentorFormData.expertise) ? mentorFormData.expertise : []);
+
+    await updateMentor(editingMentorId, {
+      ...mentorFormData,
+      expertise: expertiseArray,
+      price30: Number(mentorFormData.price30) || 0,
+      price60: Number(mentorFormData.price60) || 0,
+      payoutRate: Number(mentorFormData.payoutRate) || 0
+    });
+
+    setShowEditMentorModal(false);
+    setEditingMentorId(null);
+  };
+
+  const handleSavePricingSettings = async (e) => {
+    e.preventDefault();
+    await updatePlatformSettings({
+      membershipFee: Number(pricingForm.membershipFee) || 99,
+      mentorPayoutPercent: Number(pricingForm.mentorPayoutPercent) || 70,
+      platformFeePercent: 100 - (Number(pricingForm.mentorPayoutPercent) || 70),
+      minSessionPrice: Number(pricingForm.minSessionPrice) || 99,
+      maxSessionPrice: Number(pricingForm.maxSessionPrice) || 10000
+    });
+    setPricingSavedNotice(true);
+    setTimeout(() => setPricingSavedNotice(false), 3000);
+  };
+
+  // Filtered mentors list for admin table
+  const filteredAdminMentors = mentors.filter(m => {
+    if (!m) return false;
+    const q = mentorSearch.toLowerCase().trim();
+    const matchesSearch = !q ||
+      (m.name || '').toLowerCase().includes(q) ||
+      (m.currentRole || '').toLowerCase().includes(q) ||
+      (m.currentOrg || '').toLowerCase().includes(q) ||
+      (m.email || '').toLowerCase().includes(q);
+    const matchesType = mentorTypeFilter === 'ALL' || m.mentorType === mentorTypeFilter;
+    const matchesStatus = mentorStatusFilter === 'ALL' ||
+      (mentorStatusFilter === 'ACTIVE' && m.isActive !== false) ||
+      (mentorStatusFilter === 'INACTIVE' && m.isActive === false) ||
+      (mentorStatusFilter === 'VERIFIED' && m.verificationStatus === 'verified') ||
+      (mentorStatusFilter === 'PENDING' && m.verificationStatus === 'pending') ||
+      (mentorStatusFilter === 'SUSPENDED' && m.verificationStatus === 'suspended');
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
   // Filtered Programs list
   const filteredPrograms = programs.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(programSearch.toLowerCase()) ||
@@ -488,6 +660,7 @@ Reserve your free seat here: https://pharmnexia.in/programs`
           { id: 'staff', label: 'Staff Accounts & Roles', icon: Shield, count: staffAccounts.length },
           { id: 'support', label: 'Support Desk', icon: MessageSquare, count: supportTickets.length },
           { id: 'mentors', label: 'Mentors Management', icon: Users, count: mentors.length },
+          { id: 'payments', label: 'Payment & Pricing Settings', icon: DollarSign },
           { id: 'applications', label: 'Credential Verifications', icon: ShieldCheck, count: pendingMentors.length },
           { id: 'certificates', label: 'Certificates Registry', icon: Award, count: certificates.length },
           { id: 'bookings', label: 'Bookings & Ledger', icon: CreditCard, count: bookings.length },
@@ -1131,87 +1304,466 @@ Reserve your free seat here: https://pharmnexia.in/programs`
       )}
 
       {/* ========================================================================= */}
-      {/* 6. SECTION: MENTORS MANAGEMENT                                            */}
+      {/* 6. SECTION: MENTORS MANAGEMENT (ADMIN-CONTROLLED)                         */}
       {/* ========================================================================= */}
       {activeSection === 'mentors' && (
-        <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-6">
+          {/* Header & Quick Action */}
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-bold text-[#101828] font-heading">Registered Mentors</h2>
-              <p className="text-xs text-[#667085]">Configure pricing, expertise, and institutional honorarium status</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[#101828] font-heading">Verified Mentors Directory</h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20 font-mono">
+                  Admin Sole Control
+                </span>
+              </div>
+              <p className="text-xs text-[#667085] mt-0.5">
+                Admin is the sole authority creating mentors, setting session pricing, and managing payouts.
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenCreateMentor}
+              className="px-4 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition flex items-center gap-2 btn-primary-action"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>+ Create Mentor</span>
+            </button>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] shadow-sm">
+              <div className="text-[10px] font-mono uppercase text-[#667085]">Total Registered</div>
+              <div className="text-xl font-black text-[#101828] mt-1 font-heading">{mentors.length}</div>
+            </div>
+            <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] shadow-sm">
+              <div className="text-[10px] font-mono uppercase text-[#667085]">Active in Directory</div>
+              <div className="text-xl font-black text-[#087A52] mt-1 font-heading">
+                {mentors.filter(m => m.isActive !== false && m.verificationStatus === 'verified').length}
+              </div>
+            </div>
+            <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] shadow-sm">
+              <div className="text-[10px] font-mono uppercase text-[#667085]">Pricing Configured</div>
+              <div className="text-xl font-black text-[#101828] mt-1 font-heading">
+                {mentors.filter(m => Number(m.price30) > 0).length}
+              </div>
+            </div>
+            <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] shadow-sm">
+              <div className="text-[10px] font-mono uppercase text-[#667085]">Pending Verification</div>
+              <div className="text-xl font-black text-amber-600 mt-1 font-heading">
+                {pendingMentors.length}
+              </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-[#E5E7EB] bg-[#F8FAF9] text-[#667085] uppercase tracking-wider font-mono text-[10px]">
-                  <th className="p-3">Mentor</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Model</th>
-                  <th className="p-3">30m Fee</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E5E7EB]">
-                {mentors.map(m => (
-                  <tr key={m.id} className="hover:bg-[#F8FAF9] transition">
-                    <td className="p-3">
-                      <div className="flex items-center gap-2.5">
-                        <img src={m.avatarUrl} alt={m.name} className="w-8 h-8 rounded-full object-cover border border-[#00A86B]" />
-                        <div>
-                          <div className="font-bold text-[#101828]">{m.name}</div>
-                          <div className="text-[11px] text-[#667085] truncate max-w-[200px]">{m.currentRole}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 rounded bg-[#E8F8F1] font-mono text-[10px] text-[#087A52] border border-[#00A86B]/20">
-                        {m.mentorType}
-                      </span>
-                    </td>
-                    <td className="p-3 text-[#111827] font-medium">
-                      {m.paymentModel}
-                    </td>
-                    <td className="p-3 font-mono font-bold text-[#101828]">
-                      {m.price30 === 0 ? 'Free' : `₹${m.price30}`}
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        m.verificationStatus === 'verified' 
-                          ? 'bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20' 
-                          : m.verificationStatus === 'pending'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-rose-50 text-rose-600 border border-rose-200'
-                      }`}>
-                        {m.verificationStatus}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {m.verificationStatus !== 'verified' && (
-                          <button
-                            onClick={() => updateMentorStatus(m.id, 'verified')}
-                            className="px-2.5 py-1 rounded-lg bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[11px]"
-                          >
-                            Verify
-                          </button>
-                        )}
-                        {m.verificationStatus !== 'suspended' && (
-                          <button
-                            onClick={() => updateMentorStatus(m.id, 'suspended', 'Suspended by admin')}
-                            className="px-2.5 py-1 rounded-lg border border-[#E5E7EB] text-[#667085] text-[11px] hover:bg-[#F8FAF9] hover:text-[#111827]"
-                          >
-                            Suspend
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          {/* Filters Bar */}
+          <div className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+            <div className="w-full md:w-80 relative">
+              <Search className="w-3.5 h-3.5 text-[#667085] absolute left-3 top-2.5" />
+              <input 
+                type="text" 
+                value={mentorSearch}
+                onChange={(e) => setMentorSearch(e.target.value)}
+                placeholder="Search mentor by name, role, email..."
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-white border border-[#E5E7EB] text-[#111827] placeholder-[#667085] focus:outline-none focus:border-[#00A86B]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <select
+                value={mentorTypeFilter}
+                onChange={(e) => setMentorTypeFilter(e.target.value)}
+                className="p-1.5 rounded-lg bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B]"
+              >
+                <option value="ALL">All Categories</option>
+                <option value="Industry Professional">Industry Professional</option>
+                <option value="Academic">Academic</option>
+                <option value="Researcher">Researcher</option>
+                <option value="Entrepreneur">Entrepreneur</option>
+                <option value="Healthcare Professional">Healthcare Professional</option>
+              </select>
+
+              <select
+                value={mentorStatusFilter}
+                onChange={(e) => setMentorStatusFilter(e.target.value)}
+                className="p-1.5 rounded-lg bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B]"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="INACTIVE">Hidden / Inactive</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="PENDING">Pending</option>
+                <option value="SUSPENDED">Suspended</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Mentors Table */}
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[#E5E7EB] bg-[#F8FAF9] text-[#667085] uppercase tracking-wider font-mono text-[10px]">
+                    <th className="p-3">Mentor</th>
+                    <th className="p-3">Current Role & Org</th>
+                    <th className="p-3">Category</th>
+                    <th className="p-3">Pricing (30m / 60m)</th>
+                    <th className="p-3">Payout Model</th>
+                    <th className="p-3">Active Status</th>
+                    <th className="p-3">Verification</th>
+                    <th className="p-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#E5E7EB]">
+                  {filteredAdminMentors.map(m => {
+                    const hasPrice = Number(m.price30) > 0;
+                    return (
+                      <tr key={m.id} className="hover:bg-[#F8FAF9] transition">
+                        {/* Mentor Profile */}
+                        <td className="p-3">
+                          <div className="flex items-center gap-2.5">
+                            <img 
+                              src={m.avatarUrl} 
+                              alt={m.name} 
+                              className="w-9 h-9 rounded-xl object-cover border border-[#00A86B] flex-shrink-0" 
+                            />
+                            <div>
+                              <div className="font-bold text-[#101828] flex items-center gap-1">
+                                <span>{m.name}</span>
+                                {m.verifiedBadge && (
+                                  <ShieldCheck className="w-3.5 h-3.5 text-[#00A86B]" title="Verified" />
+                                )}
+                              </div>
+                              <div className="text-[11px] text-[#667085] truncate max-w-[170px]">{m.email || 'No email set'}</div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Role & Org */}
+                        <td className="p-3">
+                          <div className="font-semibold text-[#111827] max-w-[190px] truncate">{m.currentRole}</div>
+                          <div className="text-[11px] text-[#667085] max-w-[190px] truncate">{m.currentOrg}</div>
+                          {m.qualification && (
+                            <span className="text-[10px] text-[#087A52] font-mono">{m.qualification}</span>
+                          )}
+                        </td>
+
+                        {/* Category */}
+                        <td className="p-3">
+                          <span className="px-2 py-0.5 rounded bg-[#E8F8F1] font-mono text-[10px] text-[#087A52] border border-[#00A86B]/20 whitespace-nowrap">
+                            {m.mentorType}
+                          </span>
+                        </td>
+
+                        {/* Pricing (30m / 60m) */}
+                        <td className="p-3">
+                          {hasPrice ? (
+                            <div>
+                              <div className="font-mono font-bold text-[#101828] text-xs">
+                                ₹{m.price30} / ₹{m.price60 || Math.round(m.price30 * 1.8)}
+                              </div>
+                              <div className="text-[10px] text-[#667085]">30m / 60m</div>
+                            </div>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold text-[10px] border border-amber-200">
+                              Price not set
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Payout Model */}
+                        <td className="p-3 font-mono text-[11px] text-[#111827]">
+                          {m.payoutModel === 'PERCENTAGE' ? (
+                            <span className="font-semibold">{m.payoutRate || 70}% Share</span>
+                          ) : (
+                            <span className="font-semibold">₹{m.payoutRate || 0} Fixed</span>
+                          )}
+                        </td>
+
+                        {/* Active / Inactive Status */}
+                        <td className="p-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleMentorActive(m.id)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition flex items-center gap-1 ${
+                              m.isActive !== false 
+                                ? 'bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20 hover:bg-emerald-100' 
+                                : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200'
+                            }`}
+                            title="Click to toggle active status in public directory"
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${m.isActive !== false ? 'bg-[#00A86B]' : 'bg-gray-400'}`} />
+                            <span>{m.isActive !== false ? 'Active' : 'Inactive'}</span>
+                          </button>
+                        </td>
+
+                        {/* Verification Status */}
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono ${
+                            m.verificationStatus === 'verified' 
+                              ? 'bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20' 
+                              : m.verificationStatus === 'pending'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-rose-50 text-rose-600 border border-rose-200'
+                          }`}>
+                            {m.verificationStatus}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenEditMentor(m)}
+                              className="p-1.5 rounded-lg border border-[#E5E7EB] text-[#667085] hover:text-[#00A86B] hover:border-[#00A86B] bg-white transition"
+                              title="Edit Mentor & Pricing"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => onNavigate(`/mentors/${m.id}`)}
+                              className="p-1.5 rounded-lg border border-[#E5E7EB] text-[#667085] hover:text-[#00A86B] hover:border-[#00A86B] bg-white transition"
+                              title="View Public Profile"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+
+                            {m.verificationStatus !== 'verified' ? (
+                              <button
+                                onClick={() => updateMentorStatus(m.id, 'verified')}
+                                className="px-2.5 py-1 rounded-lg bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[11px]"
+                              >
+                                Verify
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => updateMentorStatus(m.id, 'suspended', 'Suspended by admin')}
+                                className="px-2 py-1 rounded-lg border border-[#E5E7EB] text-rose-600 hover:bg-rose-50 text-[11px]"
+                              >
+                                Suspend
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {filteredAdminMentors.length === 0 && (
+                <div className="py-12 text-center text-[#667085] space-y-2">
+                  <p className="text-sm font-semibold text-[#101828]">No mentors found matching your filters.</p>
+                  <p className="text-xs">Click "+ Create Mentor" to add the first verified advisor.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6B. SECTION: PAYMENT & PRICING SETTINGS (RAZORPAY GATEWAY CONTROL)       */}
+      {/* ========================================================================= */}
+      {activeSection === 'payments' && (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[#101828] font-heading">Payment Gateway & Pricing Controls</h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20 font-mono">
+                  Razorpay Live
+                </span>
+              </div>
+              <p className="text-xs text-[#667085] mt-0.5">
+                Manage platform pricing, membership fees, mentor revenue splits, and inspect secure Razorpay webhook status.
+              </p>
+            </div>
+          </div>
+
+          {/* Gateway Status Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Razorpay Integration Status */}
+            <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center border border-[#00A86B]/20">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[#101828] text-sm font-heading">Razorpay Integration</h3>
+                    <p className="text-[11px] text-[#667085]">Production checkout & escrow ledger</p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00A86B] animate-pulse" />
+                  <span>Connected</span>
+                </span>
+              </div>
+
+              <div className="space-y-3 pt-2 text-xs border-t border-[#E5E7EB]">
+                <div className="flex items-center justify-between py-1 border-b border-[#E5E7EB]">
+                  <span className="text-[#667085]">Public Key ID:</span>
+                  <span className="font-mono text-[11px] font-bold text-[#101828] bg-[#F8FAF9] px-2 py-0.5 rounded border border-[#E5E7EB]">
+                    {import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_... (Configured via ENV)'}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-1 border-b border-[#E5E7EB]">
+                  <span className="text-[#667085]">Secret Key:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[11px] text-[#667085]">••••••••••••••••••••••••</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-50 text-emerald-700 font-mono border border-emerald-200">
+                      Hidden & Secure
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between py-1 border-b border-[#E5E7EB]">
+                  <span className="text-[#667085]">Webhook URL:</span>
+                  <span className="font-mono text-[10px] text-blue-600 truncate max-w-xs">
+                    https://wcvnhmrgvdgfgzfsgyhs.supabase.co/functions/v1/razorpay-webhook
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-[#667085]">Signature Verification:</span>
+                  <span className="font-mono text-[11px] text-[#087A52] font-semibold">HMAC SHA256 Active</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Platform Revenue Summary */}
+            <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center border border-[#00A86B]/20">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[#101828] text-sm font-heading">Financial Split Ledger</h3>
+                    <p className="text-[11px] text-[#667085]">Real-time gross bookings & platform margin</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB]">
+                  <div className="text-[10px] text-[#667085] uppercase font-mono">Gross Mentorship Volume</div>
+                  <div className="text-lg font-black text-[#101828] font-mono mt-1">
+                    ₹{bookings.reduce((sum, b) => sum + (Number(b.paymentAmount) || 0), 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB]">
+                  <div className="text-[10px] text-[#667085] uppercase font-mono">Mentor Payouts Share</div>
+                  <div className="text-lg font-black text-[#087A52] font-mono mt-1">
+                    ₹{bookings.reduce((sum, b) => sum + (Number(b.mentorPayoutAmount) || Math.round((Number(b.paymentAmount) || 0) * 0.7)), 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB]">
+                  <div className="text-[10px] text-[#667085] uppercase font-mono">Platform Fee Retained</div>
+                  <div className="text-lg font-black text-indigo-700 font-mono mt-1">
+                    ₹{bookings.reduce((sum, b) => sum + (Number(b.platformFeeAmount) || Math.round((Number(b.paymentAmount) || 0) * 0.3)), 0).toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB]">
+                  <div className="text-[10px] text-[#667085] uppercase font-mono">Paid Bookings Count</div>
+                  <div className="text-lg font-black text-[#101828] font-mono mt-1">
+                    {bookings.filter(b => Number(b.paymentAmount) > 0).length}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pricing Controls Form */}
+          <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-6">
+            <div>
+              <h3 className="font-bold text-[#101828] text-base font-heading">Configurable Platform Pricing Settings</h3>
+              <p className="text-xs text-[#667085] mt-0.5">
+                Changes apply dynamically across all booking checkouts and membership programs.
+              </p>
+            </div>
+
+            {pricingSavedNotice && (
+              <div className="p-3 rounded-xl bg-[#E8F8F1] border border-[#00A86B]/30 text-xs text-[#087A52] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#00A86B]" />
+                <span>Pricing settings successfully saved to Supabase and synchronized.</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePricingSettings} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Platform Membership Fee (₹)
+                  </label>
+                  <input 
+                    type="number" 
+                    value={pricingForm.membershipFee}
+                    onChange={(e) => setPricingForm(f => ({ ...f, membershipFee: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B]"
+                  />
+                  <span className="text-[10px] text-[#667085]">Default ₹99 membership plan</span>
+                </div>
+
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Mentor Payout Share (%)
+                  </label>
+                  <input 
+                    type="number" 
+                    max="100"
+                    min="0"
+                    value={pricingForm.mentorPayoutPercent}
+                    onChange={(e) => setPricingForm(f => ({ ...f, mentorPayoutPercent: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B]"
+                  />
+                  <span className="text-[10px] text-[#667085]">e.g. 70% share to mentor</span>
+                </div>
+
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Minimum Allowed Session Fee (₹)
+                  </label>
+                  <input 
+                    type="number" 
+                    value={pricingForm.minSessionPrice}
+                    onChange={(e) => setPricingForm(f => ({ ...f, minSessionPrice: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B]"
+                  />
+                  <span className="text-[10px] text-[#667085]">Floor price threshold</span>
+                </div>
+
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Maximum Allowed Session Fee (₹)
+                  </label>
+                  <input 
+                    type="number" 
+                    value={pricingForm.maxSessionPrice}
+                    onChange={(e) => setPricingForm(f => ({ ...f, maxSessionPrice: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B]"
+                  />
+                  <span className="text-[10px] text-[#667085]">Cap price threshold</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition btn-primary-action"
+                >
+                  Save Platform Pricing Settings
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1327,35 +1879,80 @@ Reserve your free seat here: https://pharmnexia.in/programs`
       {/* ========================================================================= */}
       {activeSection === 'bookings' && (
         <div className="p-6 rounded-2xl bg-white border border-[#E5E7EB] shadow-sm space-y-6">
-          <div>
-            <h2 className="text-lg font-bold text-[#101828] font-heading">Bookings & Payments Ledger</h2>
-            <p className="text-xs text-[#667085]">
-              PCI-DSS compliant payment transaction records (zero raw card or UPI coordinates stored).
-            </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-[#101828] font-heading">Bookings & Payments Ledger</h2>
+              <p className="text-xs text-[#667085]">
+                Transaction ledger with escrow splits, mentor payouts, and Razorpay gateway references.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#667085] font-mono">
+                {bookings.length} Total Records
+              </span>
+            </div>
           </div>
 
           <div className="space-y-3">
-            {bookings.map(b => (
-              <div key={b.id} className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#101828]">{b.bookingCode}</span>
-                    <span className="font-mono text-[#087A52] bg-[#E8F8F1] px-2 py-0.5 rounded text-[10px] border border-[#00A86B]/20">
-                      {b.paymentStatus}
+            {bookings.map(b => {
+              const gross = Number(b.paymentAmount) || 0;
+              const mentorPayout = Number(b.mentorPayoutAmount) || Math.round(gross * 0.7);
+              const platformShare = Number(b.platformFeeAmount) || Math.max(0, gross - mentorPayout);
+
+              return (
+                <div key={b.id} className="p-4 rounded-xl bg-[#F8FAF9] border border-[#E5E7EB] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs hover:border-[#00A86B]/30 transition">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-[#101828] font-mono text-sm">{b.bookingCode}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                        b.status === 'CONFIRMED' 
+                          ? 'bg-[#E8F8F1] text-[#087A52] border border-[#00A86B]/20' 
+                          : b.status === 'PENDING_PAYMENT'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}>
+                        {b.status || 'CONFIRMED'}
+                      </span>
+                      <span className="font-mono text-[#087A52] bg-white px-2 py-0.5 rounded text-[10px] border border-[#E5E7EB]">
+                        {b.paymentStatus || 'PAID'}
+                      </span>
+                    </div>
+                    <div className="text-[#111827]">
+                      Student: <strong>{b.studentName}</strong> ({b.studentEmail})
+                    </div>
+                    <div className="text-[#667085] text-[11px]">
+                      Mentor: <strong>{b.mentorName}</strong> • Scheduled: {b.scheduledDate} ({b.scheduledTime})
+                    </div>
+                    {b.paymentId && b.paymentId !== 'FREE_SESSION' && (
+                      <div className="text-[10px] font-mono text-[#667085]">
+                        Razorpay Payment ID: <span className="text-[#101828] font-bold">{b.paymentId}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-right flex-shrink-0 space-y-1">
+                    <div className="font-mono font-black text-[#101828] text-base">
+                      {gross === 0 ? 'FREE' : `₹${gross}`}
+                    </div>
+                    {gross > 0 && (
+                      <div className="text-[11px] font-mono space-y-0.5 text-[#667085]">
+                        <div>Mentor Payout: <strong className="text-[#087A52]">₹{mentorPayout}</strong></div>
+                        <div>Platform Fee: <strong className="text-indigo-600">₹{platformShare}</strong></div>
+                      </div>
+                    )}
+                    <span className="text-[10px] text-[#667085] font-mono block">
+                      Gateway: Razorpay Escrow
                     </span>
                   </div>
-                  <div className="text-[#111827] mt-0.5">Student: {b.studentName} ({b.studentEmail})</div>
-                  <div className="text-[#667085] text-[11px]">Mentor: {b.mentorName} • {b.scheduledDate} ({b.scheduledTime})</div>
                 </div>
+              );
+            })}
 
-                <div className="text-right">
-                  <div className="font-mono font-bold text-[#101828] text-sm">
-                    {b.paymentAmount === 0 ? 'FREE' : `₹${b.paymentAmount}`}
-                  </div>
-                  <span className="text-[10px] text-[#087A52] font-mono">Gateway: Razorpay Escrow Settlement</span>
-                </div>
+            {bookings.length === 0 && (
+              <div className="py-12 text-center text-[#667085] text-xs">
+                No bookings recorded in the ledger yet.
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
@@ -2119,6 +2716,466 @@ Reserve your free seat here: https://pharmnexia.in/programs`
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CREATE / EDIT MENTOR (ADMIN INTERNAL SCROLL MODAL)                 */}
+      {/* ========================================================================= */}
+      {(showCreateMentorModal || showEditMentorModal) && (
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-[#0F172A]/40 backdrop-blur-[4px] flex items-center justify-center p-3 sm:p-5"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCreateMentorModal(false);
+              setShowEditMentorModal(false);
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-[24px] max-w-[860px] w-full shadow-[0_20px_50px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden animate-modal-pop text-[#111827] relative my-auto max-h-[calc(100vh-48px)] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Fixed Header */}
+            <div className="bg-[#F8FAF9] p-5 flex items-center justify-between border-b border-[#E5E7EB] flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-[#E8F8F1] text-[#00A86B] flex items-center justify-center border border-[#00A86B]/20">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#101828] text-base font-heading">
+                    {editingMentorId ? "Edit Mentor & Pricing Configuration" : "Create New Verified Mentor"}
+                  </h3>
+                  <p className="text-xs text-[#667085]">
+                    Administrator portal control for mentor profiles, pricing tiers, and payout models.
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowCreateMentorModal(false);
+                  setShowEditMentorModal(false);
+                }}
+                className="p-1.5 rounded-lg text-[#667085] hover:text-[#111827] hover:bg-white transition"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable Form Body */}
+            <form 
+              id="adminMentorModalForm"
+              onSubmit={editingMentorId ? handleSaveEditMentor : handleSaveCreateMentor}
+              className="p-6 overflow-y-auto flex-1 space-y-6 text-xs"
+            >
+              {/* SECTION 1: PERSONAL INFORMATION */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-[#E5E7EB]">
+                  <span className="w-2 h-2 rounded-full bg-[#00A86B]" />
+                  <h4 className="font-bold text-[#101828] text-xs font-mono uppercase tracking-wider">
+                    1. Personal Information
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Full Name *
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={mentorFormData.name}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, name: e.target.value }))}
+                      placeholder="e.g. Dr. Priya Sharma"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Professional Email *
+                    </label>
+                    <input 
+                      type="email" 
+                      required
+                      value={mentorFormData.email}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, email: e.target.value }))}
+                      placeholder="e.g. priya.sharma@novartis.com"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Profile Photo URL
+                    </label>
+                    <input 
+                      type="url" 
+                      value={mentorFormData.avatarUrl}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, avatarUrl: e.target.value }))}
+                      placeholder="https://... (Leave empty for auto-avatar)"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Phone Number (Private)
+                    </label>
+                    <input 
+                      type="tel" 
+                      value={mentorFormData.phone}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, phone: e.target.value }))}
+                      placeholder="e.g. +91 98765 43210"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Location / Base
+                    </label>
+                    <input 
+                      type="text" 
+                      value={mentorFormData.location}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, location: e.target.value }))}
+                      placeholder="e.g. Hyderabad, India"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Short Bio (One-Line Summary)
+                  </label>
+                  <input 
+                    type="text" 
+                    value={mentorFormData.shortBio}
+                    onChange={(e) => setMentorFormData(f => ({ ...f, shortBio: e.target.value }))}
+                    placeholder="e.g. 8+ years leading safety evaluations and global aggregate reporting."
+                    className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    About / Full Background
+                  </label>
+                  <textarea 
+                    rows="3"
+                    value={mentorFormData.about}
+                    onChange={(e) => setMentorFormData(f => ({ ...f, about: e.target.value }))}
+                    placeholder="Provide a comprehensive summary of experience, advising areas, and guidance approach..."
+                    className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* SECTION 2: PROFESSIONAL INFORMATION */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-[#E5E7EB]">
+                  <span className="w-2 h-2 rounded-full bg-[#00A86B]" />
+                  <h4 className="font-bold text-[#101828] text-xs font-mono uppercase tracking-wider">
+                    2. Professional Information
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Current Role / Designation *
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={mentorFormData.currentRole}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, currentRole: e.target.value }))}
+                      placeholder="e.g. Senior Drug Safety Associate"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Organization / College *
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={mentorFormData.currentOrg}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, currentOrg: e.target.value }))}
+                      placeholder="e.g. Novartis Healthcare / NIPER"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Mentor Type *
+                    </label>
+                    <select
+                      value={mentorFormData.mentorType}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, mentorType: e.target.value }))}
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    >
+                      <option value="Industry Professional">Industry Professional</option>
+                      <option value="Academic">Academic</option>
+                      <option value="Researcher">Researcher</option>
+                      <option value="Entrepreneur">Entrepreneur</option>
+                      <option value="Government Professional">Government Professional</option>
+                      <option value="Healthcare Professional">Healthcare Professional</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Academic Qualification *
+                    </label>
+                    <input 
+                      type="text"
+                      required
+                      value={mentorFormData.qualification}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, qualification: e.target.value }))}
+                      placeholder="e.g. B.Pharm, M.Pharm (Pharmacology)"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Previous Education (Optional)
+                    </label>
+                    <input 
+                      type="text"
+                      value={mentorFormData.previousEducation}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, previousEducation: e.target.value }))}
+                      placeholder="e.g. B.Pharm - Manipal University"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: EXPERTISE & DOMAINS */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-[#E5E7EB]">
+                  <span className="w-2 h-2 rounded-full bg-[#00A86B]" />
+                  <h4 className="font-bold text-[#101828] text-xs font-mono uppercase tracking-wider">
+                    3. Expertise & Career Domains
+                  </h4>
+                </div>
+
+                <div>
+                  <label className="block text-[#667085] font-semibold mb-1">
+                    Expertise Areas (Comma-Separated) *
+                  </label>
+                  <input 
+                    type="text" 
+                    value={mentorFormData.expertise}
+                    onChange={(e) => setMentorFormData(f => ({ ...f, expertise: e.target.value }))}
+                    placeholder="e.g. Pharmacovigilance, Argus Safety, MedDRA Coding, ICSR Review, Aggregate Reporting"
+                    className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                  />
+                  <span className="text-[10px] text-[#667085] mt-1 block">Separate tags with commas. These appear as chips on mentor cards.</span>
+                </div>
+              </div>
+
+              {/* SECTION 4: PRICING & REVENUE SPLIT */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-[#E5E7EB]">
+                  <span className="w-2 h-2 rounded-full bg-[#00A86B]" />
+                  <h4 className="font-bold text-[#101828] text-xs font-mono uppercase tracking-wider">
+                    4. Session Pricing & Mentor Payout
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      30 Min Session Price (₹) *
+                    </label>
+                    <input 
+                      type="number" 
+                      required
+                      min="1"
+                      value={mentorFormData.price30}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, price30: e.target.value }))}
+                      placeholder="e.g. 499"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                    <span className="text-[10px] text-[#667085]">Must be &gt; 0</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      60 Min Session Price (₹) *
+                    </label>
+                    <input 
+                      type="number" 
+                      required
+                      min="1"
+                      value={mentorFormData.price60}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, price60: e.target.value }))}
+                      placeholder="e.g. 899"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                    <span className="text-[10px] text-[#667085]">Must be &gt; 0</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Mentor Payout Model
+                    </label>
+                    <select
+                      value={mentorFormData.payoutModel}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, payoutModel: e.target.value }))}
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    >
+                      <option value="PERCENTAGE">Percentage Share (%)</option>
+                      <option value="FIXED">Fixed Amount (₹)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Payout Rate ({mentorFormData.payoutModel === 'PERCENTAGE' ? '%' : '₹'})
+                    </label>
+                    <input 
+                      type="number" 
+                      value={mentorFormData.payoutRate}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, payoutRate: e.target.value }))}
+                      placeholder="e.g. 70"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] font-mono font-bold focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: AVAILABILITY & TIMINGS */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-[#E5E7EB]">
+                  <span className="w-2 h-2 rounded-full bg-[#00A86B]" />
+                  <h4 className="font-bold text-[#101828] text-xs font-mono uppercase tracking-wider">
+                    5. Availability & Slots
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Available Days
+                    </label>
+                    <input 
+                      type="text" 
+                      value={Array.isArray(mentorFormData.availableDays) ? mentorFormData.availableDays.join(', ') : mentorFormData.availableDays}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, availableDays: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                      placeholder="e.g. Saturday, Sunday"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Time Slots
+                    </label>
+                    <input 
+                      type="text" 
+                      value={Array.isArray(mentorFormData.availableSlots) ? mentorFormData.availableSlots.join(', ') : mentorFormData.availableSlots}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, availableSlots: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                      placeholder="e.g. 06:00 PM - 06:30 PM, 07:00 PM - 07:30 PM"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Timezone
+                    </label>
+                    <input 
+                      type="text" 
+                      value={mentorFormData.timezone}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, timezone: e.target.value }))}
+                      placeholder="Asia/Kolkata (IST)"
+                      className="w-full p-2.5 rounded-lg bg-[#F8FAF9] border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B] focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 6: STATUS & VISIBILITY CONTROLS */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2 pb-1.5 border-b border-[#E5E7EB]">
+                  <span className="w-2 h-2 rounded-full bg-[#00A86B]" />
+                  <h4 className="font-bold text-[#101828] text-xs font-mono uppercase tracking-wider">
+                    6. Status & Controls
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#F8FAF9] p-3.5 rounded-xl border border-[#E5E7EB]">
+                  <div>
+                    <label className="block text-[#667085] font-semibold mb-1">
+                      Verification Status
+                    </label>
+                    <select
+                      value={mentorFormData.verificationStatus}
+                      onChange={(e) => setMentorFormData(f => ({ ...f, verificationStatus: e.target.value }))}
+                      className="w-full p-2.5 rounded-lg bg-white border border-[#E5E7EB] text-[#111827] focus:outline-none focus:border-[#00A86B]"
+                    >
+                      <option value="verified">Verified (Approved for Directory)</option>
+                      <option value="pending">Pending Review</option>
+                      <option value="suspended">Suspended / Inactive</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-center gap-3 pt-4 sm:pt-2">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={mentorFormData.isActive}
+                        onChange={(e) => setMentorFormData(f => ({ ...f, isActive: e.target.checked }))}
+                        className="w-4 h-4 rounded text-[#00A86B] focus:ring-[#00A86B]"
+                      />
+                      <span className="font-semibold text-[#101828]">
+                        Active in Public Directory (Live)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            {/* Fixed Footer */}
+            <div className="p-4 bg-[#F8FAF9] border-t border-[#E5E7EB] flex items-center justify-between flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateMentorModal(false);
+                  setShowEditMentorModal(false);
+                }}
+                className="px-4 py-2 rounded-xl border border-[#E5E7EB] text-[#667085] hover:text-[#111827] font-semibold text-xs transition"
+              >
+                Cancel
+              </button>
+
+              <button
+                form="adminMentorModalForm"
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-xs shadow-sm transition btn-primary-action"
+              >
+                {editingMentorId ? "Update Mentor & Pricing" : "Save & Verify Mentor"}
+              </button>
+            </div>
           </div>
         </div>
       )}

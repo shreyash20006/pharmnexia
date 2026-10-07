@@ -291,17 +291,17 @@ export const HomePage = ({ onNavigate }) => {
                   <ShieldCheck className="w-7 h-7" />
                 </div>
                 <h3 className="text-[22px] sm:text-[24px] font-bold text-[#111111] font-heading">
-                  Verified Mentor Directory Launching
+                  Verified Mentor Network
                 </h3>
                 <p className="text-[16px] text-[#5F6663] leading-[1.65]">
-                  Connect directly with verified pharmacists, clinical scientists, and alumni who have walked your target path. Are you a pharmacy practitioner, researcher, or faculty member?
+                  Connect directly with verified pharmacists, clinical scientists, and alumni who have walked your target career path.
                 </p>
                 <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                   <button
                     onClick={() => onNavigate('/mentors')}
                     className="px-6 py-3.5 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white text-[15px] font-semibold shadow-sm btn-primary-action"
                   >
-                    Apply as a Verified Mentor
+                    Browse Mentors
                   </button>
                   <button
                     onClick={() => onNavigate('/career-paths')}

@@ -154,6 +154,24 @@ export const AppProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
 
+  // 11. Platform Settings (Pricing, Memberships, Payout Defaults, Razorpay Config)
+  const [platformSettings, setPlatformSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pharmnexia_platform_settings');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      membershipFee: 99,
+      mentorPayoutPercent: 70,
+      platformFeePercent: 30,
+      currency: 'INR',
+      razorpayKeyId: import.meta.env.VITE_RAZORPAY_KEY_ID || '',
+      razorpayWebhookConfigured: true,
+      minSessionPrice: 99,
+      maxSessionPrice: 10000,
+    };
+  });
+
   // Helper to map Supabase User / Google Auth User to application user object
   const mapSupabaseUser = (user) => {
     if (!user) return null;
@@ -349,14 +367,18 @@ export const AppProvider = ({ children }) => {
             name: m.name || m.full_name || 'Verified Mentor',
             email: m.email || '',
             avatarUrl: m.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name || m.full_name || 'Mentor')}`,
-            verificationStatus: (m.verification_status || 'VERIFIED').toLowerCase(),
-            verifiedBadge: m.verified_badge !== false,
+            phone: m.phone || '',
+            location: m.location || '',
+            shortBio: m.short_bio || '',
+            about: m.about || '',
             currentRole: m.current_role || m.role || 'Pharmaceutical Specialist',
             currentOrg: m.current_org || m.organization || 'Healthcare Solutions',
             qualification: m.qualification || 'B.Pharm, M.Pharm',
             previousEducation: m.previous_education || '',
-            mentorType: m.mentor_type || 'Alumni',
-            paymentModel: m.payment_model || 'Free',
+            mentorType: m.mentor_type || 'Industry Professional',
+            paymentModel: (Number(m.price_30 ?? m.price_30_min ?? 0) > 0) ? 'Paid / Honorarium' : 'Free / Volunteer',
+            payoutModel: m.payout_model || 'FIXED',
+            payoutRate: Number(m.payout_rate ?? 0),
             careerPathSlugs: Array.isArray(m.career_paths) ? m.career_paths : ['pharmacovigilance'],
             expertise: Array.isArray(m.expertise) ? m.expertise : ['Career Guidance'],
             rating: Number(m.rating) || 5.0,
@@ -365,25 +387,54 @@ export const AppProvider = ({ children }) => {
             sessionDuration: '30 / 60 min',
             price30: Number(m.price_30 ?? m.price_30_min ?? 0),
             price60: Number(m.price_60 ?? m.price_60_min ?? 0),
-            about: m.about || '',
-            whatICanHelpWith: Array.isArray(m.what_i_can_help_with) ? m.what_i_can_help_with : [
-              'Career guidance and resume review',
-              'Interview preparation'
-            ],
             availableDays: Array.isArray(m.available_days) ? m.available_days : ['Saturday', 'Sunday'],
             availableSlots: Array.isArray(m.available_slots) ? m.available_slots : ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
+            startTime: m.start_time || '06:00 PM',
+            endTime: m.end_time || '08:00 PM',
+            timezone: m.timezone || 'Asia/Kolkata (IST)',
+            verificationStatus: (m.verification_status || 'VERIFIED').toLowerCase(),
+            verifiedBadge: m.verified_badge !== false,
+            isActive: m.is_active !== false,
+            whatICanHelpWith: Array.isArray(m.what_i_can_help_with) ? m.what_i_can_help_with : [
+              'Career guidance and roadmap planning',
+              'Interview preparation & CV review'
+            ],
             reviews: []
           }));
 
-          const hasDemo = mapped.some(m => m.id === DEMO_MENTOR_PRIYA.id);
-          setMentors(hasDemo ? mapped : [...mapped, DEMO_MENTOR_PRIYA]);
+          setMentors(mapped);
         }
       } catch (err) {
         console.warn('[PharmNexia] Database mentors fetch:', err);
       }
     };
 
+    const fetchPlatformSettings = async () => {
+      try {
+        const { data, error } = await supabase.from('platform_settings').select('*');
+        if (!error && Array.isArray(data) && data.length > 0 && isMounted) {
+          setPlatformSettings(prev => {
+            const merged = { ...prev };
+            data.forEach(row => {
+              if (row.key && row.value !== undefined) {
+                merged[row.key] = typeof row.value === 'object' && row.value !== null && 'val' in row.value 
+                  ? row.value.val 
+                  : row.value;
+              }
+            });
+            try {
+              localStorage.setItem('pharmnexia_platform_settings', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn('[PharmNexia] Platform settings fetch notice:', err);
+      }
+    };
+
     fetchSupabaseMentors();
+    fetchPlatformSettings();
 
     return () => {
       isMounted = false;
@@ -679,6 +730,21 @@ export const AppProvider = ({ children }) => {
     const resolvedStudentEmail = studentInfo?.email || currentUser?.email || "";
     const resolvedStudentCollege = studentInfo?.college || currentUser?.college || "";
 
+    // Payout and platform split calculation
+    let mentorPayout = 0;
+    let platformFee = 0;
+    if (amount > 0) {
+      if (mentor.payoutModel === 'PERCENTAGE' && Number(mentor.payoutRate) > 0) {
+        mentorPayout = Math.round((amount * Number(mentor.payoutRate)) / 100);
+      } else if (mentor.payoutModel === 'FIXED' && Number(mentor.payoutRate) > 0) {
+        mentorPayout = Math.min(amount, Number(mentor.payoutRate));
+      } else {
+        const pct = platformSettings?.mentorPayoutPercent || 70;
+        mentorPayout = Math.round((amount * pct) / 100);
+      }
+      platformFee = Math.max(0, amount - mentorPayout);
+    }
+
     const newBooking = {
       id: newBookingId,
       bookingCode: newBookingId,
@@ -697,6 +763,8 @@ export const AppProvider = ({ children }) => {
       status: "CONFIRMED",
       meetingLink: `https://meet.pharmnexia.in/room/session-${newBookingId.toLowerCase()}`,
       paymentAmount: amount,
+      mentorPayoutAmount: mentorPayout,
+      platformFeeAmount: platformFee,
       paymentStatus: amount > 0 ? "PAID" : "FREE_SESSION",
       paymentId: resolvedPaymentId,
       paymentGateway: amount > 0 ? paymentGateway : "NONE",
@@ -730,6 +798,8 @@ export const AppProvider = ({ children }) => {
           mentor_role: newBooking.mentorRole,
           mentor_avatar: newBooking.mentorAvatar,
           payment_amount: amount,
+          mentor_payout_amount: mentorPayout,
+          platform_fee_amount: platformFee,
           payment_status: amount > 0 ? "PAID" : "FREE_SESSION",
           payment_id: resolvedPaymentId,
           payment_gateway: amount > 0 ? paymentGateway : "NONE"
@@ -1438,31 +1508,129 @@ export const AppProvider = ({ children }) => {
   };
 
   // Admin Mentor Actions
-  const updateMentorStatus = (mentorId, status, notes = "") => {
+  const updateMentorStatus = async (mentorId, status, notes = "") => {
     setMentors(prev => prev.map(m => {
       if (m.id === mentorId) {
         return {
           ...m,
-          verificationStatus: status,
-          verifiedBadge: status === 'verified'
+          verificationStatus: status.toLowerCase(),
+          verifiedBadge: status.toLowerCase() === 'verified'
         };
       }
       return m;
     }));
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        await supabase.from('mentors').update({
+          verification_status: status.toUpperCase(),
+          verified_badge: status.toLowerCase() === 'verified',
+          updated_at: new Date().toISOString()
+        }).eq('id', mentorId);
+      } catch (err) {
+        console.warn('[PharmNexia DB] updateMentorStatus error:', err);
+      }
+    }
+  };
+
+  const updateMentor = async (mentorId, updatedFields) => {
+    setMentors(prev => prev.map(m => {
+      if (m.id === mentorId) {
+        return { ...m, ...updatedFields };
+      }
+      return m;
+    }));
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        const payload = {};
+        if (updatedFields.name !== undefined) payload.name = updatedFields.name;
+        if (updatedFields.email !== undefined) payload.email = updatedFields.email;
+        if (updatedFields.avatarUrl !== undefined) payload.avatar_url = updatedFields.avatarUrl;
+        if (updatedFields.phone !== undefined) payload.phone = updatedFields.phone;
+        if (updatedFields.location !== undefined) payload.location = updatedFields.location;
+        if (updatedFields.shortBio !== undefined) payload.short_bio = updatedFields.shortBio;
+        if (updatedFields.about !== undefined) payload.about = updatedFields.about;
+        if (updatedFields.currentRole !== undefined) payload["current_role"] = updatedFields.currentRole;
+        if (updatedFields.currentOrg !== undefined) payload.current_org = updatedFields.currentOrg;
+        if (updatedFields.mentorType !== undefined) payload.mentor_type = updatedFields.mentorType;
+        if (updatedFields.qualification !== undefined) payload.qualification = updatedFields.qualification;
+        if (updatedFields.previousEducation !== undefined) payload.previous_education = updatedFields.previousEducation;
+        if (updatedFields.expertise !== undefined) payload.expertise = Array.isArray(updatedFields.expertise) ? updatedFields.expertise : [];
+        if (updatedFields.careerPathSlugs !== undefined) payload.career_paths = updatedFields.careerPathSlugs;
+        if (updatedFields.price30 !== undefined) payload.price_30 = Number(updatedFields.price30) || 0;
+        if (updatedFields.price60 !== undefined) payload.price_60 = Number(updatedFields.price60) || 0;
+        if (updatedFields.payoutModel !== undefined) payload.payout_model = updatedFields.payoutModel;
+        if (updatedFields.payoutRate !== undefined) payload.payout_rate = Number(updatedFields.payoutRate) || 0;
+        if (updatedFields.availableDays !== undefined) payload.available_days = updatedFields.availableDays;
+        if (updatedFields.availableSlots !== undefined) payload.available_slots = updatedFields.availableSlots;
+        if (updatedFields.startTime !== undefined) payload.start_time = updatedFields.startTime;
+        if (updatedFields.endTime !== undefined) payload.end_time = updatedFields.endTime;
+        if (updatedFields.timezone !== undefined) payload.timezone = updatedFields.timezone;
+        if (updatedFields.verificationStatus !== undefined) {
+          payload.verification_status = updatedFields.verificationStatus.toUpperCase();
+          payload.verified_badge = updatedFields.verificationStatus.toLowerCase() === 'verified';
+        }
+        if (updatedFields.isActive !== undefined) payload.is_active = updatedFields.isActive;
+        payload.updated_at = new Date().toISOString();
+
+        await supabase.from('mentors').update(payload).eq('id', mentorId);
+
+        await supabase.from('audit_logs').insert({
+          actor: currentUser?.name || 'Administrator',
+          action: 'ADMIN_UPDATE_MENTOR',
+          target_type: 'MENTOR',
+          target_id: mentorId,
+          details: `Admin updated mentor details & pricing for ID ${mentorId}`
+        });
+      } catch (err) {
+        console.warn('[PharmNexia DB] updateMentor error:', err);
+      }
+    }
+  };
+
+  const toggleMentorActive = async (mentorId) => {
+    const target = mentors.find(m => m.id === mentorId);
+    if (!target) return;
+    const nextState = target.isActive === false ? true : false;
+    await updateMentor(mentorId, { isActive: nextState });
   };
 
   const addMentor = async (mentorData) => {
     const newId = mentorData.id || `mentor-${Date.now()}`;
     const newMentor = {
-      ...mentorData,
       id: newId,
       name: mentorData.name || 'Verified Mentor',
-      verificationStatus: mentorData.verificationStatus || 'pending',
-      verifiedBadge: false,
+      email: mentorData.email || '',
+      avatarUrl: mentorData.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(mentorData.name || 'Mentor')}`,
+      phone: mentorData.phone || '',
+      location: mentorData.location || '',
+      shortBio: mentorData.shortBio || '',
+      about: mentorData.about || '',
+      currentRole: mentorData.currentRole || 'Pharmaceutical Specialist',
+      currentOrg: mentorData.currentOrg || 'Healthcare Sector',
+      mentorType: mentorData.mentorType || 'Industry Professional',
+      qualification: mentorData.qualification || 'B.Pharm, M.Pharm',
+      previousEducation: mentorData.previousEducation || '',
+      expertise: Array.isArray(mentorData.expertise) ? mentorData.expertise : (mentorData.expertise ? mentorData.expertise.split(',').map(s => s.trim()) : []),
+      careerPathSlugs: Array.isArray(mentorData.careerPathSlugs) ? mentorData.careerPathSlugs : [],
+      price30: Number(mentorData.price30) || 0,
+      price60: Number(mentorData.price60) || 0,
+      payoutModel: mentorData.payoutModel || 'FIXED',
+      payoutRate: Number(mentorData.payoutRate) || 0,
+      availableDays: Array.isArray(mentorData.availableDays) ? mentorData.availableDays : ['Saturday', 'Sunday'],
+      availableSlots: Array.isArray(mentorData.availableSlots) ? mentorData.availableSlots : ['06:00 PM - 06:30 PM', '07:00 PM - 07:30 PM'],
+      startTime: mentorData.startTime || '06:00 PM',
+      endTime: mentorData.endTime || '08:00 PM',
+      timezone: mentorData.timezone || 'Asia/Kolkata (IST)',
+      verificationStatus: (mentorData.verificationStatus || 'verified').toLowerCase(),
+      verifiedBadge: (mentorData.verificationStatus || 'verified').toLowerCase() === 'verified',
+      isActive: mentorData.isActive !== false,
       rating: 5.0,
       reviewCount: 0,
       sessionsCompleted: 0
     };
+
     setMentors(prev => [newMentor, ...prev]);
 
     if (supabase && isSupabaseConfigured) {
@@ -1470,25 +1638,120 @@ export const AppProvider = ({ children }) => {
         await supabase.from('mentors').insert({
           id: newId,
           name: newMentor.name,
-          email: newMentor.email || '',
-          current_role: newMentor.currentRole || 'Career Mentor',
-          current_org: newMentor.currentOrg || 'Healthcare Sector',
-          qualification: newMentor.qualification || 'B.Pharm, M.Pharm',
-          mentor_type: newMentor.mentorType || 'Industry',
-          about: newMentor.about || '',
-          expertise: Array.isArray(newMentor.expertise) ? newMentor.expertise : [],
-          verification_status: 'PENDING',
-          verified_badge: false,
-          price_30: Number(newMentor.price30) || 0,
-          price_60: Number(newMentor.price60) || 0,
-          payment_model: newMentor.paymentModel || 'Free',
-          is_active: true
+          email: newMentor.email,
+          avatar_url: newMentor.avatarUrl,
+          phone: newMentor.phone,
+          location: newMentor.location,
+          short_bio: newMentor.shortBio,
+          about: newMentor.about,
+          "current_role": newMentor.currentRole,
+          current_org: newMentor.currentOrg,
+          mentor_type: newMentor.mentorType,
+          qualification: newMentor.qualification,
+          previous_education: newMentor.previousEducation,
+          expertise: newMentor.expertise,
+          career_paths: newMentor.careerPathSlugs,
+          price_30: newMentor.price30,
+          price_60: newMentor.price60,
+          payout_model: newMentor.payoutModel,
+          payout_rate: newMentor.payoutRate,
+          available_days: newMentor.availableDays,
+          available_slots: newMentor.availableSlots,
+          start_time: newMentor.startTime,
+          end_time: newMentor.endTime,
+          timezone: newMentor.timezone,
+          verification_status: newMentor.verificationStatus.toUpperCase(),
+          verified_badge: newMentor.verifiedBadge,
+          is_active: newMentor.isActive
+        });
+
+        await supabase.from('audit_logs').insert({
+          actor: currentUser?.name || 'Administrator',
+          action: 'ADMIN_CREATE_MENTOR',
+          target_type: 'MENTOR',
+          target_id: newId,
+          details: `Admin created mentor ${newMentor.name} with fee ₹${newMentor.price30}/₹${newMentor.price60}`
         });
       } catch (err) {
         console.warn('[PharmNexia DB] Add mentor to Supabase notice:', err);
       }
     }
     return newMentor;
+  };
+
+  const confirmBookingPayment = async (bookingCode, paymentDetails = {}) => {
+    const { paymentId, gateway = 'RAZORPAY' } = paymentDetails;
+
+    setBookings(prev => prev.map(b => {
+      if (b.bookingCode === bookingCode) {
+        return {
+          ...b,
+          status: 'CONFIRMED',
+          paymentStatus: 'SUCCESS',
+          paymentId: paymentId || b.paymentId,
+          paymentGateway: gateway
+        };
+      }
+      return b;
+    }));
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('bookings')
+          .update({
+            status: 'CONFIRMED',
+            payment_status: 'SUCCESS',
+            payment_id: paymentId,
+            payment_gateway: gateway,
+            calendar_sync_status: 'CONFIRMED'
+          })
+          .eq('booking_code', bookingCode);
+
+        const currentBooking = bookings.find(b => b.bookingCode === bookingCode);
+        if (currentBooking && currentBooking.paymentAmount > 0) {
+          await supabase.from('payments').insert({
+            booking_code: bookingCode,
+            student_name: currentBooking.studentName,
+            student_email: currentBooking.studentEmail,
+            amount: currentBooking.paymentAmount,
+            currency: 'INR',
+            status: 'SUCCESS',
+            gateway_name: gateway,
+            gateway_payment_id: paymentId,
+            gateway_signature_verified: true,
+            paid_at: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.warn('[PharmNexia DB] Confirm booking error:', err);
+      }
+    }
+  };
+
+  const updatePlatformSettings = async (newSettings) => {
+    setPlatformSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem('pharmnexia_platform_settings', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (supabase && isSupabaseConfigured) {
+      try {
+        for (const [key, val] of Object.entries(newSettings)) {
+          await supabase.from('platform_settings').upsert({
+            key,
+            value: typeof val === 'object' && val !== null ? val : { val },
+            updated_at: new Date().toISOString(),
+            updated_by: currentUser?.email || 'admin'
+          });
+        }
+      } catch (err) {
+        console.warn('[PharmNexia DB] updatePlatformSettings err:', err);
+      }
+    }
   };
 
   const addNotification = ({ title, message, type = "SYSTEM", link = null }) => {
@@ -1576,7 +1839,12 @@ export const AppProvider = ({ children }) => {
         verifyCertificate,
         issueCertificate,
         updateMentorStatus,
+        updateMentor,
+        toggleMentorActive,
         addMentor,
+        confirmBookingPayment,
+        platformSettings,
+        updatePlatformSettings,
         fetchSupabaseBookings,
         addNotification,
         markAllNotificationsRead,

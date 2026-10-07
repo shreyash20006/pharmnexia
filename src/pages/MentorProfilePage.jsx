@@ -280,7 +280,11 @@ export const MentorProfilePage = ({ mentorId, onNavigate }) => {
                   <div className="text-[12.5px] text-[#667085]">Roadmap clarity & strategy review</div>
                 </div>
                 <div className="text-[15.5px] font-extrabold text-[#087A52] font-mono">
-                  {mentor.price30 === 0 ? 'FREE' : `₹${mentor.price30}`}
+                  {Number(mentor.price30) > 0 ? (
+                    `₹${mentor.price30}`
+                  ) : (
+                    <span className="text-amber-600 text-[12px] font-semibold">Price not configured</span>
+                  )}
                 </div>
               </button>
 
@@ -298,7 +302,11 @@ export const MentorProfilePage = ({ mentorId, onNavigate }) => {
                   <div className="text-[12.5px] text-[#667085]">Detailed mock interview & CV review</div>
                 </div>
                 <div className="text-[15.5px] font-extrabold text-[#087A52] font-mono">
-                  {mentor.price60 === 0 ? 'FREE' : `₹${mentor.price60}`}
+                  {Number(mentor.price60) > 0 ? (
+                    `₹${mentor.price60}`
+                  ) : (
+                    <span className="text-amber-600 text-[12px] font-semibold">Price not configured</span>
+                  )}
                 </div>
               </button>
             </div>
@@ -319,12 +327,23 @@ export const MentorProfilePage = ({ mentorId, onNavigate }) => {
               </div>
             </div>
 
-            <button
-              onClick={() => setIsBookingModalOpen(true)}
-              className="w-full py-3 rounded-xl bg-[#00A86B] hover:bg-[#087A52] text-white font-semibold text-[15px] shadow-sm transition duration-200 btn-primary-action"
-            >
-              Choose Slot & Book Now
-            </button>
+            {(() => {
+              const activePrice = selectedSessionDuration === 30 ? Number(mentor.price30 || 0) : Number(mentor.price60 || 0);
+              const isValid = activePrice > 0;
+              return (
+                <button
+                  disabled={!isValid}
+                  onClick={() => setIsBookingModalOpen(true)}
+                  className={`w-full py-3 rounded-xl font-semibold text-[15px] shadow-sm transition duration-200 btn-primary-action ${
+                    isValid 
+                      ? 'bg-[#00A86B] hover:bg-[#087A52] text-white' 
+                      : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                  }`}
+                >
+                  {isValid ? 'Choose Slot & Book Now' : 'Session Price Not Configured'}
+                </button>
+              );
+            })()}
           </div>
 
           {/* Privacy Guarantee Notice */}

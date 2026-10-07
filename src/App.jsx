@@ -150,9 +150,9 @@ function AppContent() {
       return <MentorProfilePage mentorId={mentorId} onNavigate={navigate} />;
     }
 
-    // 4. Become a mentor / onboarding
+    // 4. Become a mentor / onboarding (Deprecated public route -> Redirects to /mentors)
     if (currentPath === '/become-a-mentor' || currentPath === '/mentor/onboarding') {
-      return <MentorsPage onNavigate={navigate} initialApplyOpen={true} />;
+      return <MentorsPage onNavigate={navigate} />;
     }
 
     // 5. Programs, Detail & Verified Event Access
@@ -216,10 +216,31 @@ function AppContent() {
     }
 
     // 10. Admin Dashboard & Subroutes (Strictly Role Protected)
+    if (currentPath === '/admin/mentors') {
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard initialSection="mentors" onNavigate={navigate} />
+        </ProtectedRoute>
+      );
+    }
     if (currentPath === '/admin/programs') {
       return (
         <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
           <AdminDashboard initialSection="programs" onNavigate={navigate} />
+        </ProtectedRoute>
+      );
+    }
+    if (currentPath === '/admin/bookings') {
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard initialSection="bookings" onNavigate={navigate} />
+        </ProtectedRoute>
+      );
+    }
+    if (currentPath === '/admin/payments' || currentPath === '/admin/settings/payments') {
+      return (
+        <ProtectedRoute allowedRoles={staffRoles} onNavigate={navigate}>
+          <AdminDashboard initialSection="payments" onNavigate={navigate} />
         </ProtectedRoute>
       );
     }
