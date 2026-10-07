@@ -172,18 +172,27 @@ export const AppProvider = ({ children }) => {
     };
   });
 
+  const SUPER_ADMIN_EMAILS = [
+    'sb108750@gmail.com',
+    'pharmanexia@gmail.com',
+    'pharmnexia@gmail.com',
+    'admin@pharmnexia.in'
+  ];
+
   // Helper to map Supabase User / Google Auth User to application user object
   const mapSupabaseUser = (user) => {
     if (!user) return null;
     const meta = user.user_metadata || {};
     const fullName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
-    const role = (meta.role || 'STUDENT').toUpperCase();
+    const isHardcodedSuperAdmin = user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase().trim());
+    const role = isHardcodedSuperAdmin ? 'SUPER_ADMIN' : (meta.role || 'STUDENT').toUpperCase();
     return {
       id: user.id,
       pharmNexiaId: meta.pharm_nexia_id || formatPharmNexiaId(role, user.id || user.email),
       email: user.email,
       name: fullName,
       role: role,
+      staffRole: isHardcodedSuperAdmin ? 'SUPER_ADMIN' : undefined,
       college: meta.college || '',
       degree: meta.degree || 'B.Pharm',
       year: meta.year || '3rd Year',
@@ -198,7 +207,20 @@ export const AppProvider = ({ children }) => {
   // Protected with a 6-second timeout to prevent infinite hangs
   const resolveUserWithDbRole = async (user) => {
     const base = mapSupabaseUser(user);
-    if (!supabase || !isSupabaseConfigured || !user?.email) return base;
+    if (!user?.email) return base;
+
+    // Direct Instant Super Admin Override for Genesis Platform Administrators
+    if (SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase().trim())) {
+      return {
+        ...base,
+        role: 'SUPER_ADMIN',
+        staffRole: 'SUPER_ADMIN',
+        title: 'Chief Platform Administrator',
+        department: 'Executive Governance'
+      };
+    }
+
+    if (!supabase || !isSupabaseConfigured) return base;
 
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Profile resolution timeout')), 6000)

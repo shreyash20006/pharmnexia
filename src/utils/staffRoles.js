@@ -139,6 +139,34 @@ export const checkPermission = (userOrStaff, permissionKey) => {
 
 export const INITIAL_STAFF_MEMBERS = [
   {
+    id: 'staff-sb',
+    pharmNexiaId: 'PHN-ADM-001087',
+    name: 'Shreyash B.',
+    email: 'sb108750@gmail.com',
+    role: 'SUPER_ADMIN',
+    department: 'Executive Governance',
+    title: 'Super Administrator',
+    status: 'ACTIVE',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Shreyash+B',
+    invitedBy: 'System Genesis',
+    joinedDate: '2026-10-07',
+    lastActive: 'Active now'
+  },
+  {
+    id: 'staff-phn',
+    pharmNexiaId: 'PHN-ADM-001088',
+    name: 'PharmNexia Executive',
+    email: 'pharmanexia@gmail.com',
+    role: 'SUPER_ADMIN',
+    department: 'Executive Governance',
+    title: 'Super Administrator',
+    status: 'ACTIVE',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=PharmNexia+Admin',
+    invitedBy: 'System Genesis',
+    joinedDate: '2026-10-07',
+    lastActive: 'Active now'
+  },
+  {
     id: 'staff-001',
     pharmNexiaId: 'PHN-STF-000001',
     name: 'Dr. K. Sen',
